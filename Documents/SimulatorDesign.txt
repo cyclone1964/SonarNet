@@ -1,0 +1,26 @@
+So I am looking over the sim I used for 581. For this work I need it
+to do different things:
+
+1) I need more flexible beam pattern computation. These should be
+table driven, a composite of in-plane and normal components as if from
+planar arrays. For now let's wrap the array and beam pattern into one
+function. Need this for both transmit and receive. Let's see if I can
+get the stuff from the office for this.
+
+We have the stuff from the office. Let me verify that as best I can quickly. 
+
+2) I need real backscattering functions. Let's use the table driven
+versions. These can be mono-static models for now.
+
+3) Need target models so we wil need a funciton to return lists of
+point scatterers. We will be testing the ability of the CNN to
+differentiate compact and distributed targets.
+
+4) For now we limit ourselves to CW pulses, planar square arrays, and
+line-targets.
+
+5) Wondering if filtered noise (K-w) or point-scatterer reverb is best.
+
+6) Wondering about multi-path.
+
+
