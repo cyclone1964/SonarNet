@@ -48,9 +48,9 @@ class SonarDataset(Dataset):
         and sets up index lists for the various partitions
         """
         self.root_dir = root_dir
-        self.partitions = {'train': range(0,15000),
-                           'validate': range(15000,20000),
-                           'test': range(20000,25000)}
+        self.partitions = {'train': range(0,500),
+                           'validate': range(500,750),
+                           'test': range(750,1000)}
         self.directory = np.loadtxt(root_dir + '/Directory.txt').astype(int)
         self.indices = self.partitions[partition]; 
 
@@ -181,7 +181,7 @@ class SonarNet(nn.Module):
 dataDir = '../GeneratedData'
 trainingSet = SonarDataset(dataDir,partition = 'train')
 
-if (!torch.cude.is_available()):
+if (not torch.cuda.is_available()):
     X, y = trainingSet.__getitem__(5)
     print("X: ",X.shape,"Y: ",y.shape)
     plt.figure
@@ -224,8 +224,8 @@ while (epoch < 5):
     print("Do Epoch: ",epoch)
 
     for X_batch, y_batch in loader:
-        X.batch.to(device)
-        y.batch.to(device)
+        X_Batch = X_batch.to(device)
+        y_batch = y_batch.to(device)
         y_pred = model.forward(X_batch)
         loss = torch.nn.functional.mse_loss(y_pred,y_batch)
 
