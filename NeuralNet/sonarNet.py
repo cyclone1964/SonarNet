@@ -217,11 +217,11 @@ if (os.path.isfile(fileName)):
     losses = checkpoint['losses']
 else:
     print("Checkpoint File not Found: ",fileName);
-    epoch = 1
+    epoch = 0
     losses = []
 
 # Now do the epochs
-while (epoch <= 10):
+while (epoch < 5):
     print("Do Epoch: ",epoch)
 
     for X_batch, y_batch in loader:
