@@ -13,6 +13,14 @@ import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 from torch.utils.data import Dataset, DataLoader
 
+# First, let's see if we have a cuda device
+if torch.cuda.is_available():
+    print("Run on GPU!!");
+    device = torch.device("cuda:0")
+else:
+    print("Run on CPU :(");
+    device = torch.device("cpu")
+
 # Now, we write our own data set class so that we can leverage all
 # loader capabilities of pytorch. The structure here is that the
 # generated data is stored in a directory in a series of files with a
@@ -70,6 +78,7 @@ class SonarDataset(Dataset):
                        dtype='uint8').astype(float)
         X.shape = (25, 128, 256)
         X = torch.from_numpy(X).float()
+        X.to(device)
 
         # And similarly the labels ...
         y = np.fromfile(self.root_dir + '/LabelMap-' +
@@ -85,6 +94,7 @@ class SonarDataset(Dataset):
         freq.shape = (256,)
         y = np.concatenate((range,freq))
         y = torch.from_numpy(y).float()
+        y.to(device)
         
         return X, y
 
@@ -190,6 +200,7 @@ loader = DataLoader(trainingSet,batch_size = 5)
 # Create the sonarnet, insuring that it is implemented in floats not
 # doubles since it runs faster.
 model = SonarNet().float()
+model.to(device)
 
 # Use simple SGD to start
 optim = torch.optim.SGD(model.parameters(),lr=1e-2)
