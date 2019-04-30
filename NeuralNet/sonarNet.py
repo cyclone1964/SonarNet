@@ -78,7 +78,6 @@ class SonarDataset(Dataset):
                        dtype='uint8').astype(float)
         X.shape = (25, 128, 256)
         X = torch.from_numpy(X).float()
-        X.to(device)
 
         # And similarly the labels ...
         y = np.fromfile(self.root_dir + '/LabelMap-' +
@@ -94,7 +93,6 @@ class SonarDataset(Dataset):
         freq.shape = (256,)
         y = np.concatenate((range,freq))
         y = torch.from_numpy(y).float()
-        y.to(device)
         
         return X, y
 
@@ -182,15 +180,16 @@ class SonarNet(nn.Module):
 # Now, we test the data loader by loading one item and plotting it
 dataDir = '../GeneratedData'
 trainingSet = SonarDataset(dataDir,partition = 'train')
-X, y = trainingSet.__getitem__(5)
 
-print("X: ",X.shape,"Y: ",y.shape)
-plt.figure
-plt.imshow(X[13,:,:])
-plt.figure
-plt.plot(y[:128].numpy())
-plt.figure
-plt.plot(y[128:].numpy())
+if (!torch.cude.is_available()):
+    X, y = trainingSet.__getitem__(5)
+    print("X: ",X.shape,"Y: ",y.shape)
+    plt.figure
+    plt.imshow(X[13,:,:])
+    plt.figure
+    plt.plot(y[:128].numpy())
+    plt.figure
+    plt.plot(y[128:].numpy())
 
 
 # Now, let's try to train a network!! First, set up the data loader
@@ -225,6 +224,8 @@ while (epoch < 5):
     print("Do Epoch: ",epoch)
 
     for X_batch, y_batch in loader:
+        X.batch.to(device)
+        y.batch.to(device)
         y_pred = model.forward(X_batch)
         loss = torch.nn.functional.mse_loss(y_pred,y_batch)
 
