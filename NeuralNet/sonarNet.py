@@ -1,11 +1,14 @@
 # The first thing is to import all the things we need
 #
+# os, re, and math for file manipulation
 # pytorch of course
 # numpy for data input manipulations
 # matplotlib for plotting intermediates
 # shorthands for nn and model_zoo
 # The data set and data loader support
 import os
+import re
+import math
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,13 +31,10 @@ else:
 # Directory.txt - list of all the IDs
 # ImageMap-<ID>.txt - file containing the features, 25x128x256 greyscale
 # LabelMap-<ID>.txt - file containing flags of 1/0 about target presence
+# Detections-<ID>.txt - file containg flags for each of the frames/bins
 # FeatureMap-<ID>.txt - 8 sets of X/Y/Z/Doppler/Validity for targets
 #
-# The ImageMaps we used unchanged
-#
-# The LabelMaps provide the labels. but are reduced from 128-256 to
-# two catenated vectors 128 adn 256 by or-ing accross the two
-# dimensions. This was done to reduce the size of the net.
+# For this processing, we are only interested in the ImageMaps and Detections
 class SonarDataset(Dataset):
 
     """ Sonar Dataset: for reading my generated Sonar data """
@@ -47,10 +47,19 @@ class SonarDataset(Dataset):
         and sets up index lists for the various partitions
         """
         self.root_dir = root_dir
-        self.partitions = {'train': range(0,500),
-                           'validate': range(500,750),
-                           'test': range(750,1000)}
+
+        # This loads the directory, which is a list of all viable IDs
         self.directory = np.loadtxt(root_dir + '/Directory.txt').astype(int)
+
+        # Now splut that into training, validation, and test. Training
+        # is the first 1/2, validation the next 1/4, and test the rest
+        numTrain = math.floor(len(self.directory)/2)
+        numVal = math.floor(len(self.directory)/4)
+        self.partitions = {'train': range(0,numTrain),
+                           'validate': range(numTrain,numTrain+numVal),
+                           'test': range(numTrain+numVal,len(self.directory))}
+
+        # Now for this instantiation, we choose one of the partitions
         self.indices = self.partitions[partition]; 
 
     """
@@ -61,9 +70,8 @@ class SonarDataset(Dataset):
 
     """ 
     Get an instance of the current partition. The input is taken as an
-    index into the currently selected index list and the associated
-    files are read in. It is at this point that the reduction in the
-    dimensionality of the labels is done.
+    index into the currently selected index and the associated
+    files are read in.
     """
     def __getitem__(self,idx):
 
@@ -71,14 +79,14 @@ class SonarDataset(Dataset):
         index = self.indices[idx]
 
         # Now load the image, reshape as necessary, and convert to a
-        # torch tensor.
+        # torch tensor of floats.
         X = np.fromfile(self.root_dir + '/ImageMap-' +
                         str(self.directory[index]) + '.dat',
                        dtype='uint8').astype(float)
         X.shape = (25, 128, 256)
         X = torch.from_numpy(X).float()
 
-        # And similarly the labels ...
+        # And similarly the detections ...
         y = np.fromfile(self.root_dir + '/Detections-' +
                         str(self.directory[index]) + '.dat',
                        dtype='uint8').astype(float)
@@ -86,7 +94,8 @@ class SonarDataset(Dataset):
         
         return X, y
 
-# Now define the SonarNet, a pytorch nn module.
+# Now define the SonarNet, a pytorch nn module that is pretty much a
+# clone of VGG 16 but with some dimensions changed
 class SonarNet(nn.Module):
 
     def __init__(self):
@@ -101,10 +110,8 @@ class SonarNet(nn.Module):
         # opportunities.
         
         self.frontEnd = nn.Sequential(
-            # This I chose because I feel like the echoes are contained in 
-            # a fairly tight space along the frequency axis, but they 
-            # can be right at the edge so I do a full padding here. 
-            # The output will be 25x128x256
+            ## This is almost cut and paste from VGG16 except that the
+            ## number of input planes is radically different.
             nn.Conv2d(25,64, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
             nn.ReLU(inplace=True),
             nn.Conv2d(64,64, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
@@ -174,26 +181,13 @@ class SonarNet(nn.Module):
 
         return x
 
-# Now, we test the data loader by loading one item and plotting it
+# Set up the data set
 dataDir = '../GeneratedData'
 trainingSet = SonarDataset(dataDir,partition = 'train')
 
-if (not torch.cuda.is_available()):
-    print("Plot Item 5");
-    X, y = trainingSet.__getitem__(5)
-    print("X: ",X.shape,"Y: ",y.shape)
-    plt.figure
-    plt.imshow(X[13,:,:])
-    plt.figure
-    plt.plot(y[:128].numpy())
-    plt.figure
-    plt.plot(y[128:].numpy())
-    plt.show()
-
-
 # Now, let's try to train a network!! First, set up the data loader
-# from the training set above with a batch size of 5 for now.
-loader = DataLoader(trainingSet,batch_size = 5)
+# from the training set above with a batch size of 20 for now.
+loader = DataLoader(trainingSet,batch_size = 20)
 
 # Create the sonarnet, insuring that it is implemented in floats not
 # doubles since it runs faster.
@@ -204,11 +198,22 @@ model.to(device)
 optim = torch.optim.SGD(model.parameters(),lr=1e-2)
 
 # Now, we do some training. First, we have the option of loading from
-# a checkpoint.
-fileName = "CheckPoint-860.pth"
-if (os.path.isfile(fileName)):
+# a checkpoint if we find one: start from the highest numbered one
+lastCheckpoint = 0
+for r,d,f in os.walk('.'):
+    for file in f:
+        if 'CheckPoint' in file:
+            parts = re.split("[-\.]",file)
+            lastCheckpoint = max(lastCheckpoint,int(parts[1]))
+
+# If we found a checkpoint, load it, otherwise, start from scratch
+if (lastCheckpoint > 0):
+    fileName = "CheckPoint-" + str(lastCheckpoint) + ".pth"
     print("Loading Checkpoint: ",fileName)
-    checkpoint = torch.load(fileName)
+    if (torch.cuda.is_available()):
+        checkpoint = torch.load(fileName)
+    else:
+        checkpoint = torch.load(fileName,map_location = "cpu")
     epoch = checkpoint['epoch']
     model.load_state_dict(checkpoint['state_dict'])
     optim.load_state_dict(checkpoint['optimizer'])
@@ -218,23 +223,32 @@ else:
     epoch = 0
     losses = []
 
-# Now do the epochs
-while (epoch < 5):
+# Now do up to 2000 epochs
+while (epoch < 2000):
+
+    # For all the batches
     for X_batch, y_batch in loader:
+
+        # Send them to the cuda device if we are using one
         X_batch = X_batch.to(device)
         y_batch = y_batch.to(device)
+
+        # DO the preduction and add the loss
         y_pred = model.forward(X_batch)
         loss = torch.nn.functional.mse_loss(y_pred,y_batch)
 
+        # Back propagate
         loss.backward()
         optim.step()
         optim.zero_grad()
 
+        # Append the loss for this to the list
         losses.append(loss.item())
         print("Index: ", len(losses), " Loss: ",loss.item())
             
-        # Now do the plotting
-        if (len(losses)%100 == 0):
+        # Now, every 1000 or so, we save a checkpoint so that we can
+        # restart from there.
+        if (len(losses)%1000 == 0):
             fileName = 'CheckPoint-' + str(len(losses)) +'.pth'
             state = {'losses': losses,
                      'epoch': epoch,
@@ -242,4 +256,6 @@ while (epoch < 5):
                      'optimizer': optim.state_dict()}
             torch.save(state,fileName)
             print('Saved Checkpoint: ',fileName)
+
+    # Next epoch please
     epoch = epoch + 1

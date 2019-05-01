@@ -22,7 +22,8 @@ Steerings = ...
 ReceiveDirections = computeDirection(Steerings * pi/180);
 
 % Let's make a lot of these
-for SampleIndex = 1:10000
+SampleIndex = 3336;
+while (SampleIndex < 10000)
     
     % The environment has these things randomized:
     % WaterDepth, WindSpeed, and GrainSize
@@ -201,4 +202,5 @@ for SampleIndex = 1:10000
     fwrite(FID,Features(:),'float');
     fclose(FID);
     
+    SampleIndex = SampleIndex + 1;
 end
