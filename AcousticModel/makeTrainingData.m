@@ -22,7 +22,7 @@ Steerings = ...
 ReceiveDirections = computeDirection(Steerings * pi/180);
 
 % Let's make a lot of these
-for SampleIndex = 1:25000
+for SampleIndex = 1:10000
     
     % The environment has these things randomized:
     % WaterDepth, WindSpeed, and GrainSize
@@ -46,17 +46,17 @@ for SampleIndex = 1:25000
                                         'Surface',Surface, ...
                                         'Bottom',Bottom);
     
-    % Now, the source is bewteen the surface and the bottom, and
+    % Now, the source is between the surface and the bottom, and
     % has a speed between 10 and 30 MPS
     SourceSpeed = 10 + 15*rand(1);
-    TargetDepth = 50 + (WaterDepth-100)*rand(1);
+    SourceDepth = 50 + (WaterDepth-100)*rand(1);
     
-    Source = initializePlatformState('Position',[0 0 TargetDepth]', ...
+    Source = initializePlatformState('Position',[0 0 SourceDepth]', ...
                                      'Attitude',[0 0 0]', ...
                                      'Velocity',[SourceSpeed 0 0]');
 
     % Now choose a real target .. not every time though.
-    if (rand() > 0.5)
+    if (rand(1) > 0.5)
         
         % The target is between 100 and 1300 meters away, and we
         % place it relatively to the source to keep it within the
@@ -113,16 +113,19 @@ for SampleIndex = 1:25000
                         'Environment',Environment);
 
     % Now write the images into a file uniquely named from the time
-    Id = mod(round(24*60*60*10*now),1000000000);
-    FileName = sprintf('../GeneratedData/Image-%.0f.csv',Id);
+    Id = mod(round(24*60*60*100*now),1000000000);
+    FileName = sprintf('../GeneratedData/ImageMap-%.0f.dat',Id);
     FID = fopen(FileName,'w');
+    
     % Now do all the processing to generate the images for each or
     % the beams and write them into the image file
     for BeamIndex = 1:size(Beams,2)
         [~,F,T,P] = ...
-            spectrogram(Beams(:,BeamIndex),128,64,[],diff(Properties.Band));
+            spectrogram(Beams(:,BeamIndex),128,64,[], ...
+                        diff(Properties.Band));
+        P = P(:,1:128); T = T(1:128);
         F = F  - mean(F) + mean(Properties.Band);
-        P = 10 * log10(fftshift(P(:,1:128),1));
+        P = 10 * log10(fftshift(P,1));
         P = max(0,min(255,P));
         fwrite(FID,P(:),'uint8');
     end
@@ -132,22 +135,48 @@ for SampleIndex = 1:25000
     Labels = zeros(size(P));
     if (~isempty(Properties.Pulses))
         Pulses = [Properties.Pulses];
-        Pulses = Pulses(~[Pulses.False]);
-        Bins = interp1(F,1:length(F),[Properties.Pulses.Frequency], ...
+        Bins = interp1(F,1:length(F),[Pulses.Frequency], ...
                        'nearest', 'extrap');
-        Frames = interp1(T,1:length(T),[Properties.Pulses.Time], ...
+        Frames = interp1(T,1:length(T),[Pulses.Time], ...
                          'nearest','extrap');
         for Index = 1:length(Bins)
-            Labels(Bins(Index),Frames(Index)) = 1;
+            if (Pulses(Index).False)
+                Labels(Bins(Index),Frames(Index)) = 1;
+            else
+                Labels(Bins(Index),Frames(Index)) = 2;
+            end
         end
     end
     
     % Write that to a file
-    FileName = sprintf('../GeneratedData/LabelMap-%.0f.csv',Id);
+    FileName = sprintf('../GeneratedData/LabelMap-%.0f.dat',Id);
     FID = fopen(FileName,'w');
     fwrite(FID,Labels(:),'uint8');
     fclose(FID);
-    fprintf('Generated Data Id %.0f\n',Id);
+    fprintf('(%d): Generated Data Id %.0f\n',SampleIndex,Id);
+
+    % Now make detection stats. These are either 0 for non or 1 for
+    % true target. We remove decoys for this purpose
+    BinFlags = zeros(size(F)); RangeFlags = zeros(size(T))';
+    if (~isempty(TargetHighlights))
+        Pulses = [Properties.Pulses];
+        Pulses = Pulses(~[Pulses.False]);
+        [~,Index] = max([Pulses.Strength]);
+        Bin = interp1(F,1:length(F),Pulses(Index).Frequency, ...
+                      'nearest', 'extrap');
+        Frame = interp1(T,1:length(T),Pulses(Index).Time,  ...
+                        'nearest','extrap');
+        BinFlags(Bin) = 1;
+        RangeFlags(Frame) = 1;
+
+    end
+    Detections = [BinFlags(:); RangeFlags(:)];
+
+    % Write that to a file
+    FileName = sprintf('../GeneratedData/Detections-%.0f.dat',Id);
+    FID = fopen(FileName,'w');
+    fwrite(FID,Detections(:),'uint8');
+    fclose(FID);
 
     % Now make a feature map. We allow room for up to 8 targets in
     % here, but we only populate the first one
@@ -167,7 +196,7 @@ for SampleIndex = 1:25000
         Index = Index + 5;
     end
     
-    FileName = sprintf('../GeneratedData/FeatureMap-%.0f.csv',Id);
+    FileName = sprintf('../GeneratedData/FeatureMap-%.0f.dat',Id);
     FID = fopen(FileName,'w');
     fwrite(FID,Features(:),'float');
     fclose(FID);

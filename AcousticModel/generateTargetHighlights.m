@@ -13,10 +13,14 @@ function Highlights = generateTargetHighlights(Source,Target)
 % which is 1/3 down the way of the tube which is 100 meters long. It
 % has two hemispherical caps on each end and a set of ribs.
 Radius = 5;
+SailWidth = 2;
+SailLength = 7.5;
+SailHeight = 4;
 FrontCapPosition = [33 0 0]';
-EndCapPosition = [-67 0 0]';
-ScrewPosition = [-77 0 0];
-RibXPositions = (0:-4:-100) + 33;
+EndCapPosition = [-47 0 0]';
+ScrewPosition = [-57 0 0]';
+SailPosition = [0 0 -Radius]';
+RibXPositions = (0:-4:-80) + 23;
 
 % First, compute the global offset of the source in the target
 % reference frame.
@@ -48,7 +52,7 @@ else
 end
 
 Highlights = newHighlight('Position',SpecularPosition, ...
-                          'Strength', 10, ...
+                          'Strength', 20, ...
                           'Doppler',Speed*Direction(1));
 
 % Now, we add the ribs. However, we only do this if the source is
@@ -60,15 +64,28 @@ if (norm(Offset(2:3)) > Radius)
     RibPositions = [RibXPositions; YZ];
     for Index = 1:length(RibXPositions)
         Highlights(end+1) = newHighlight('Position',RibPositions(:,Index), ...
-                                         'Strength', -4, ...
+                                         'Strength', 10, ...
                                          'Doppler',Speed*Direction(1));
     end
+end
+
+% Make highlights on the sail, treated as an ellipsoid
+Z = -SailHeight:1:0;
+Positions = [SailLength * Direction(1); SailWidth * Direction(2); 0];
+Positions = repmat(Positions,1,length(Z));
+Positions(3,:) = Z;
+Positions = Positions + repmat(SailPosition,1,length(Z));
+
+for Index = 1:size(Positions,2)
+    Highlights(end+1) = newHighlight('Position',Positions(:,Index), ...
+                                     'Strength',5, ...
+                                     'Doppler',Speed*Direction(1));
 end
 
 % Now add some at the rear where the screw would be. This is done
 % pretty stupidly: We presume that at 20 knots the screw turns 200
 % RPM based upon a line from Hunt For Red October.
-if (Speed > 100)
+if (Speed > 5)
     RPM = 200*Speed/20;
     RPS = RPM/60;
 
@@ -80,15 +97,15 @@ if (Speed > 100)
     % Now, the Doppler is a function of the radius of the scatterer
     R = sqrt(sum(YZ.^2,1));
     V = 2 * pi * R/RPS;
-    Doppler = V .* randn(1,200);
+    Doppler = 0.2* V .* randn(1,200);
     
     for Index = 1:length(Doppler)
         Highlights(end+1) = newHighlight('Position',Positions(:,Index), ...
-                                         'Strength',-15-10*randn(1)^2, ...
+                                         'Strength',-10*randn(1)^2, ...
                                          'Doppler',Doppler(Index));
     end
 end
-
+    
 % Now, the positions are in target-relative coordinates: we have to
 % go through and convert them to global.
 for Index = 1:length(Highlights)

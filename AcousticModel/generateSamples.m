@@ -34,10 +34,10 @@ Properties.SourceLevel = 220;
 Properties.PulseLength = 0.050;
 Properties.CycleLength = 2.75;
 Properties.PlatformState = initializePlatformState;
-Properties.BackgroundLevel = 40;
+Properties.BackgroundLevel = 80;
 Properties.ReceiveSteerings = [0;0];
-Properties.VolumeReverbAdjustment = -20;
-Properties.BoundaryReverbAdjustment = [-20 -20]';
+Properties.VolumeReverbAdjustment = 0;
+Properties.BoundaryReverbAdjustment = [0 0]';
 
 Properties = setProperties(Properties,varargin{:});
 
@@ -115,7 +115,9 @@ if (~isempty(Properties.Highlights))
         % We use the source level, prop loss, and target strength to compute a
         % level. Note that we sae this in a structure which we will
         % save in a vector below so that we can return this
-        % information to the caller amended to the input properties.
+        % information to the caller amended to the input
+        % properties.
+        Pulse.Strength = Properties.Highlights(Index).Strength;
         Pulse.Level = Properties.SourceLevel - ...
             40 * log10(Ranges(Index)) + ...
             Properties.Highlights(Index).Strength;
@@ -137,7 +139,7 @@ if (~isempty(Properties.Highlights))
         BasebandFrequency = 2*pi*(Pulse.Frequency - CenterFreq)/SampleRate; 
         
         % Generate the actual pulse signals and window it
-        Phase = (1:NumPulseSamples)*BasebandFrequency;
+        Phase = (1:NumPulseSamples)*BasebandFrequency + 2*pi*rand(1);
         PulseSamples = (cos(Phase') + 1i * sin(Phase')) * 10^(Pulse.Level/20);
         PulseSamples = PulseSamples .* blackman(length(PulseSamples));
         
@@ -154,7 +156,7 @@ if (~isempty(Properties.Highlights))
                                        ArrayRotation*...
                                        Properties.ReceiveSteerings(:,BeamIndex));
             Signal(Indices,BeamIndex) = Signal(Indices,BeamIndex) + ...
-                Transmit * Receive * PulseSamples;
+                Receive * PulseSamples;
         end
         
         % Now, we store the pulse parameters in the properties to
@@ -185,7 +187,7 @@ Directions = ArrayRotation * ...
     computeDirection([zeros(size(AllBearings(:))) ...
                     AllElevations(:) ...
                     AllBearings(:)]');
-Transmit = computeTransmitResponse(Directions);
+Transmit = computeTransmitResponse(Directions).^2;
 
 % And the differential volume really
 Differential = log10(SoundSpeed * Properties.PulseLength/2) * ...
@@ -212,7 +214,7 @@ for BeamIndex = 1:NumBeams
     Receive = ...
         computeReceiveResponse(Directions, ...
                                ArrayRotation * ...
-                               Properties.ReceiveSteerings(:,BeamIndex));
+                               Properties.ReceiveSteerings(:,BeamIndex)).^2;
     Spectrum = ...
         accumarray(Bins, ...
                    Receive .* ...
@@ -221,6 +223,7 @@ for BeamIndex = 1:NumBeams
     if (length(Spectrum) < NumBins) 
         Spectrum(NumBins) = 0;
     end
+    
     VolumeSpectra(:,BeamIndex) = fftshift(sqrt(Spectrum));
 end
 
@@ -362,9 +365,7 @@ for BoundaryType = 1:2
         10^(BoundaryLevel(FrameIndices(FrameIndex),BoundaryType)/20);
     
     % Compute the transmit beam response
-    Transmit = ...
-             computeTransmitResponse(ArrayRotation * Directions) .* ...
-             computeBaffling(ArrayRotation*Directions);
+    Transmit = computeTransmitResponse(ArrayRotation * Directions).^2;
 
     % Remove bins out of range
     Indices = find(Bins > 0);
@@ -381,8 +382,8 @@ for BoundaryType = 1:2
         % ... get the beam response and integrate it into a spectrum
         Receive = ...
             computeReceiveResponse(ArrayRotation*Directions, ...
-            ArrayRotation * Properties.ReceiveSteerings(:, ...
-                                                        BeamIndex));
+                                   ArrayRotation * ...
+                                   Properties.ReceiveSteerings(:,BeamIndex)).^2;
         Spectrum = sqrt(accumarray(Bins', ...
                                    Receive .* ...
                                    Transmit .* ...
@@ -390,7 +391,7 @@ for BoundaryType = 1:2
         if (length(Spectrum) < NumBins) 
             Spectrum(NumBins) = 0;
         end
-    
+
         % Now make the frame
         Spectrum = fftshift(Spectrum);
         Frame = NumBins * sqrt(2) * ifft(Spectrum .* Temp);

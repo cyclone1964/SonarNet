@@ -10,7 +10,6 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
-import torch.utils.model_zoo as model_zoo
 from torch.utils.data import Dataset, DataLoader
 
 # First, let's see if we have a cuda device
@@ -73,25 +72,16 @@ class SonarDataset(Dataset):
 
         # Now load the image, reshape as necessary, and convert to a
         # torch tensor.
-        X = np.fromfile(self.root_dir + '/Image-' +
-                        str(self.directory[index]) + '.csv',
+        X = np.fromfile(self.root_dir + '/ImageMap-' +
+                        str(self.directory[index]) + '.dat',
                        dtype='uint8').astype(float)
         X.shape = (25, 128, 256)
         X = torch.from_numpy(X).float()
 
         # And similarly the labels ...
-        y = np.fromfile(self.root_dir + '/LabelMap-' +
-                        str(self.directory[index]) + '.csv',
+        y = np.fromfile(self.root_dir + '/Detections-' +
+                        str(self.directory[index]) + '.dat',
                        dtype='uint8').astype(float)
-        y.shape = (128,256)
-        
-        # ... and do the reduction by projecting onto range and frequency
-        # axes and concatenating
-        range = y.max(1)
-        freq = y.max(0)
-        range.shape = (128,)
-        freq.shape = (256,)
-        y = np.concatenate((range,freq))
         y = torch.from_numpy(y).float()
         
         return X, y
@@ -115,40 +105,53 @@ class SonarNet(nn.Module):
             # a fairly tight space along the frequency axis, but they 
             # can be right at the edge so I do a full padding here. 
             # The output will be 25x128x256
-            nn.Conv2d(25,25, kernel_size=(3,3),padding = (1,1),groups=25),
+            nn.Conv2d(25,64, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
             nn.ReLU(inplace=True),
-            nn.Conv2d(25,25, kernel_size=(3,3),padding = (1,1),groups=25),
+            nn.Conv2d(64,64, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=1,padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
+                         dilation=1,ceil_mode=False),
             
-            nn.Conv2d(25,25, kernel_size=(3,3),padding = (1,1)),
+            nn.Conv2d(64,128, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
             nn.ReLU(inplace=True),
-            nn.Conv2d(25,25, kernel_size=(3,3),padding = (1,1)),
+            nn.Conv2d(128,128, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=1,padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
+                         dilation=1,ceil_mode=False),
+
+            nn.Conv2d(128,256, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256,256, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256,256, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
+                         dilation=1,ceil_mode=False),
+
+            nn.Conv2d(256,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
+                         dilation=1,ceil_mode=False),
+
+            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
+                         dilation=1,ceil_mode=False),
+            
         )
-        
-        # This is the "RangeNet", which expands the input (25x128x256) out to
-        # (128x128x256) then does a big maxPool over the entire map, generating
-        # a 1x128 vector that is matched to the range part of the labels.
-        self.rangeNet = nn.Sequential(
-            nn.Conv2d(25,128,kernel_size=11),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=(128,256)),
-        )
-        
-        # Similarly the frequencyNet
-        self.frequencyNet = nn.Sequential(
-            nn.Conv2d(25,256,kernel_size=11),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=(256,256),)
-        )
-        
         
         # And now the classifier layers, two fully connected layers
         self.classifier = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(128+256, 128+256),
+            nn.Linear(512 * 4 * 8, 128+256),
             nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(128+256, 128+256),
@@ -162,18 +165,12 @@ class SonarNet(nn.Module):
         
         # Run the front end
         front = self.frontEnd(x)
+
+        # Flatten it
+        flat = front.view(front.size(0),512 * 4 * 8)
         
-        # now run the freqency and range nets
-        range = self.rangeNet(front)
-        frequency = self.frequencyNet(front)
-
-        # Now to catenate them together
-        range = range.view(range.size(0),128)
-        frequency = frequency.view(frequency.size(0),256)
-        both = torch.cat((range,frequency),1)
-
         # Run the classifier on them both
-        x = self.classifier(both)
+        x = self.classifier(flat)
 
         return x
 
@@ -182,6 +179,7 @@ dataDir = '../GeneratedData'
 trainingSet = SonarDataset(dataDir,partition = 'train')
 
 if (not torch.cuda.is_available()):
+    print("Plot Item 5");
     X, y = trainingSet.__getitem__(5)
     print("X: ",X.shape,"Y: ",y.shape)
     plt.figure
@@ -190,6 +188,7 @@ if (not torch.cuda.is_available()):
     plt.plot(y[:128].numpy())
     plt.figure
     plt.plot(y[128:].numpy())
+    plt.show()
 
 
 # Now, let's try to train a network!! First, set up the data loader
@@ -221,10 +220,8 @@ else:
 
 # Now do the epochs
 while (epoch < 5):
-    print("Do Epoch: ",epoch)
-
     for X_batch, y_batch in loader:
-        X_Batch = X_batch.to(device)
+        X_batch = X_batch.to(device)
         y_batch = y_batch.to(device)
         y_pred = model.forward(X_batch)
         loss = torch.nn.functional.mse_loss(y_pred,y_batch)
@@ -237,8 +234,7 @@ while (epoch < 5):
         print("Index: ", len(losses), " Loss: ",loss.item())
             
         # Now do the plotting
-        
-        if (len(losses)%20 == 0):
+        if (len(losses)%100 == 0):
             fileName = 'CheckPoint-' + str(len(losses)) +'.pth'
             state = {'losses': losses,
                      'epoch': epoch,
@@ -246,3 +242,4 @@ while (epoch < 5):
                      'optimizer': optim.state_dict()}
             torch.save(state,fileName)
             print('Saved Checkpoint: ',fileName)
+    epoch = epoch + 1
