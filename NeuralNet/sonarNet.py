@@ -184,18 +184,20 @@ class SonarNet(nn.Module):
 # Set up the data set
 dataDir = '../GeneratedData'
 trainingSet = SonarDataset(dataDir,partition = 'train')
+validationSet = SonarDataset(dataDir,partition = 'validate')
 
 # Now, let's try to train a network!! First, set up the data loader
 # from the training set above with a batch size of 20 for now.
-loader = DataLoader(trainingSet,batch_size = 20)
+trainingLoader = DataLoader(trainingSet,batch_size = 10)
+validationLoader = DataLoader(validationSet,batch_size=10)
 
 # Create the sonarnet, insuring that it is implemented in floats not
 # doubles since it runs faster.
 model = SonarNet().float()
-model.to(device)
+model = model.to(device)
 
 # Use simple SGD to start
-optim = torch.optim.SGD(model.parameters(),lr=1e-2)
+optim = torch.optim.SGD(model.parameters(),lr=1e-2,momentum=0.2)
 
 # Now, we do some training. First, we have the option of loading from
 # a checkpoint if we find one: start from the highest numbered one
@@ -205,6 +207,7 @@ for r,d,f in os.walk('.'):
         if 'CheckPoint' in file:
             parts = re.split("[-\.]",file)
             lastCheckpoint = max(lastCheckpoint,int(parts[1]))
+            print("Found Checkpoint",lastCheckpoint)
 
 # If we found a checkpoint, load it, otherwise, start from scratch
 if (lastCheckpoint > 0):
@@ -214,20 +217,36 @@ if (lastCheckpoint > 0):
         checkpoint = torch.load(fileName)
     else:
         checkpoint = torch.load(fileName,map_location = "cpu")
+
+    # Now extract the things from the dicionary
     epoch = checkpoint['epoch']
     model.load_state_dict(checkpoint['state_dict'])
     optim.load_state_dict(checkpoint['optimizer'])
     losses = checkpoint['losses']
+    if ('valPerformance' in checkpoint):
+        valPerformance = checkpoint['valPerformance']
+    else:
+        valPerformance = []
+
+    if ('trainPerformance' in checkpoint):
+        trainPerformance = checkpoint['trainPerformance']
+    else:
+        trainPerformance = []
+        
 else:
-    print("Checkpoint File not Found: ",fileName);
+    print("Checkpoint Not Found");
     epoch = 0
     losses = []
-
+    valPerformance = []
+    trainPerformance = []
+    
 # Now do up to 2000 epochs
 while (epoch < 2000):
 
     # For all the batches
-    for X_batch, y_batch in loader:
+    numTotal=0
+    numCorrect = 0
+    for X_batch, y_batch in trainingLoader:
 
         # Send them to the cuda device if we are using one
         X_batch = X_batch.to(device)
@@ -236,26 +255,93 @@ while (epoch < 2000):
         # DO the preduction and add the loss
         y_pred = model.forward(X_batch)
         loss = torch.nn.functional.mse_loss(y_pred,y_batch)
-
+        
         # Back propagate
         loss.backward()
         optim.step()
         optim.zero_grad()
-
+        
         # Append the loss for this to the list
         losses.append(loss.item())
-        print("Index: ", len(losses), " Loss: ",loss.item())
-            
-        # Now, every 1000 or so, we save a checkpoint so that we can
-        # restart from there.
-        if (len(losses)%1000 == 0):
-            fileName = 'CheckPoint-' + str(len(losses)) +'.pth'
-            state = {'losses': losses,
-                     'epoch': epoch,
-                     'state_dict':model.state_dict(),
-                     'optimizer': optim.state_dict()}
-            torch.save(state,fileName)
-            print('Saved Checkpoint: ',fileName)
+
+        predBinValues,predBinIndices = torch.max(y_pred[:,1:256],dim=1)
+        predFrameValues,predFrameIndices = torch.max(y_pred[:,256:],dim=1)
+
+        batchBinValues,batchBinIndices = torch.max(y_batch[:,1:256],dim=1)
+        batchFrameValues,batchFrameIndices = torch.max(y_batch[:,256:],dim=1)
+
+        #  The mode is correct iff:
+        #
+        # There is no target and it found no target or
+        # there is a target and the model found it in the right places
+        states = (torch.gt(predBinValues,0.5) & 
+                  torch.gt(predFrameValues,0.5) & 
+                  torch.gt(batchBinValues,0.5) & 
+                  torch.gt(batchFrameValues,0.5) & 
+                  torch.eq(predBinIndices,batchBinIndices) &
+                  torch.eq(predFrameIndices,batchFrameIndices)).numpy()
+        numCorrect += np.sum(np.where(states,1,0))
+
+        states = (torch.le(predBinValues,0.5) &
+                  torch.le(predFrameValues,0.5) & 
+                  torch.le(batchBinValues,0.5) & 
+                  torch.le(batchFrameValues,0.5)).numpy()
+        numCorrect += np.sum(np.where(states,1,0))
+        numTotal += 1
+
+    # Now, the first time through , we have to have an extra 
+    trainPerformance.append(float(numCorrect)/float(numTotal))
+    
+    
+    # Now let us do the validation
+    numTotal = 0
+    numCorrect = 0
+    for X_val, y_val in validationLoader:
+
+        y_pred = model.forward(X_val)
+
+        predBinValues,predBinIndices = torch.max(y_pred[:,1:256],dim=1)
+        predFrameValues,predFrameIndices = torch.max(y_pred[:,256:],dim=1)
+
+        valBinValues,valBinIndices = torch.max(y_val[:,1:256],dim=1)
+        valFrameValues,valFrameIndices = torch.max(y_val[:,256:],dim=1)
+
+        #  The mode is correct iff:
+        #
+        # There is no target and it found no target or
+        # there is a target and the model found it in the right places
+        states = (torch.gt(predBinValues,0.5) & 
+                  torch.gt(predFrameValues,0.5) & 
+                  torch.gt(valBinValues,0.5) & 
+                  torch.gt(valFrameValues,0.5) & 
+                  torch.eq(predBinIndices,valBinIndices) &
+                  torch.eq(predFrameIndices,valFrameIndices)).numpy()
+        numCorrect += np.sum(np.where(states,1,0))
+
+        states = (torch.le(predBinValues,0.5) &
+                  torch.le(predFrameValues,0.5) & 
+                  torch.le(valBinValues,0.5) & 
+                  torch.le(valFrameValues,0.5)).numpy()
+        numCorrect += np.sum(np.where(states,1,0))
+        numTotal += 1
+
+    # Add this to the performance numbers
+    valPerformance.append(float(numCorrect)/float(numTotal))
+    
+    # Now, every 1000 or so, we save a checkpoint so that we can
+    # restart from there.
+    fileName = 'CheckPoint-' + str(epoch) +'.pth'
+    state = {'epoch': epoch,
+             'losses': losses,
+             'trainPerformance':trainPerformance, 
+             'valPerformance':valPerformance, 
+             'state_dict' : model.state_dict(),
+             'optimizer': optim.state_dict()}
+    torch.save(state,fileName)
+    print('Saved Checkpoint ',fileName,
+          ' train: ',trainPerformance[-1],
+          ' val:',valPerformance[-1])
 
     # Next epoch please
     epoch = epoch + 1
+
