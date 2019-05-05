@@ -371,7 +371,7 @@ for BoundaryType = 1:2
     Indices = find(Bins > 0);
     Bins = Bins(Indices);
     Transmit = Transmit(Indices);
-    Direction = Directions(:,Indices);
+    Directions = Directions(:,Indices);
 
     % Make the noise the same for all of them
     Temp = randn(NumBins,1) + 1i * randn(NumBins,1);

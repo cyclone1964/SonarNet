@@ -22,8 +22,8 @@ Steerings = ...
 ReceiveDirections = computeDirection(Steerings * pi/180);
 
 % Let's make a lot of these
-SampleIndex = 3336;
-while (SampleIndex < 10000)
+SampleIndex = 38160;
+while (SampleIndex < 40000)
     
     % The environment has these things randomized:
     % WaterDepth, WindSpeed, and GrainSize
@@ -49,7 +49,7 @@ while (SampleIndex < 10000)
     
     % Now, the source is between the surface and the bottom, and
     % has a speed between 10 and 30 MPS
-    SourceSpeed = 10 + 15*rand(1);
+    SourceSpeed = 15;
     SourceDepth = 50 + (WaterDepth-100)*rand(1);
     
     Source = initializePlatformState('Position',[0 0 SourceDepth]', ...
@@ -57,21 +57,21 @@ while (SampleIndex < 10000)
                                      'Velocity',[SourceSpeed 0 0]');
 
     % Now choose a real target .. not every time though.
-    if (rand(1) > 0.5)
+    if (rand(1) > 0)
         
         % The target is between 100 and 1300 meters away, and we
         % place it relatively to the source to keep it within the
         % visible window
-        TargetRange = 100 + 1400*rand(1);
+        TargetRange = 50 + 700*rand(1);
         TargetBearing = -18 + 36 * rand(1);
         TargetElevation = -18 + 36 * rand(1);
         TargetPosition = Source.Position + ...
             TargetRange * computeDirection([0 TargetElevation TargetBearing]'*pi/180);
 
-        % The target has randome attitude in the X/Y plane and
+        % The target has random attitude in the X/Y plane and
         % random velocity up to 15 m/s (30 knots)
         TargetAttitude = [0 0 2*pi*rand(1)]';
-        TargetVelocity = [15 * rand(1) 0 0];
+        TargetVelocity = [10 * rand(1) 0 0];
         Target = initializePlatformState('Position',TargetPosition, ...
                                          'Attitude',TargetAttitude, ...
                                          'Velocity',TargetVelocity);
@@ -85,7 +85,7 @@ while (SampleIndex < 10000)
     end
     
     % And also make a false target sometimes
-    if (rand() > 0.5)
+    if (rand() > 2)
         
         % The target is between 100 and 1300 meters away
         DecoyRange = 100 + 1400*rand(1);
@@ -108,7 +108,11 @@ while (SampleIndex < 10000)
 
     % Generate the data 
     [Beams, Properties] =  ...
-        generateSamples('PlatformState',Source, ...
+        generateSamples('Band',[19000, 21000], ...
+                        'CycleLength',1, ...
+                        'VolumeReverbAdjustment',-40, ...
+                        'BoundaryReverbAdjustment',[0 0]', ...
+                        'PlatformState',Source, ...
                         'Highlights',[TargetHighlights; DecoyHighlights], ...
                         'ReceiveSteerings',ReceiveDirections, ...
                         'Environment',Environment);
@@ -122,9 +126,9 @@ while (SampleIndex < 10000)
     % the beams and write them into the image file
     for BeamIndex = 1:size(Beams,2)
         [~,F,T,P] = ...
-            spectrogram(Beams(:,BeamIndex),128,64,[], ...
+            spectrogram(Beams(:,BeamIndex),64,32,64, ...
                         diff(Properties.Band));
-        P = P(:,1:128); T = T(1:128);
+        P(:,end+1) = P(:,end); T(end+1) = T(end)+diff(T(1:2));
         F = F  - mean(F) + mean(Properties.Band);
         P = 10 * log10(fftshift(P,1));
         P = max(0,min(255,P));

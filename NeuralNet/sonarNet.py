@@ -1,3 +1,6 @@
+# This version implements a modified VGG but this time I implement a large
+# softmax layer in the output
+
 # The first thing is to import all the things we need
 #
 # os, re, and math for file manipulation
@@ -83,13 +86,15 @@ class SonarDataset(Dataset):
         X = np.fromfile(self.root_dir + '/ImageMap-' +
                         str(self.directory[index]) + '.dat',
                        dtype='uint8').astype(float)
-        X.shape = (25, 128, 256)
+        X.shape = (25, 64, 64)
         X = torch.from_numpy(X).float()
 
         # And similarly the detections ...
-        y = np.fromfile(self.root_dir + '/Detections-' +
+        y = np.fromfile(self.root_dir + '/LabelMap-' +
                         str(self.directory[index]) + '.dat',
                        dtype='uint8').astype(float)
+        y.shape = (4096,1)
+        y = np.min(y,1)
         y = torch.from_numpy(y).float()
         
         return X, y
@@ -135,34 +140,37 @@ class SonarNet(nn.Module):
             nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
                          dilation=1,ceil_mode=False),
 
-            nn.Conv2d(256,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
-                         dilation=1,ceil_mode=False),
+#            nn.Conv2d(256,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+#            nn.ReLU(inplace=True),
+#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+#            nn.ReLU(inplace=True),
+#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+#            nn.ReLU(inplace=True),
+#            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
+#                         dilation=1,ceil_mode=False),
 
-            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
-                         dilation=1,ceil_mode=False),
+#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+#            nn.ReLU(inplace=True),
+#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+#            nn.ReLU(inplace=True),
+#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+#            nn.ReLU(inplace=True),
+#            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
+#                         dilation=1,ceil_mode=False),
             
         )
         
         # And now the classifier layers, two fully connected layers
         self.classifier = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(512 * 4 * 8, 128+256),
+            nn.Linear(512 * 4 * 8, 4096),
             nn.ReLU(inplace=True),
             nn.Dropout(),
-            nn.Linear(128+256, 128+256),
-            nn.Sigmoid()
+            nn.Linear(4096,4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096,4096),
+            nn.Softmax(dim=0)
         )
 
     # Now the forward propgation. This runs the front end, then feeds
@@ -178,7 +186,6 @@ class SonarNet(nn.Module):
         
         # Run the classifier on them both
         x = self.classifier(flat)
-
         return x
 
 # Set up the data set
@@ -287,7 +294,7 @@ while (epoch < 2000):
                   torch.le(batchBinValues,0.5) & 
                   torch.le(batchFrameValues,0.5)).cpu().numpy()
         numCorrect += np.sum(np.where(states,1,0))
-        numTotal += state.shape[0]
+        numTotal += states.shape[0]
 
     # Now, the first time through , we have to have an extra 
     trainPerformance.append(float(numCorrect)/float(numTotal))

@@ -19,23 +19,23 @@ for Id = Ids(:)'
     % Load the image map
     FileName = sprintf('../GeneratedData/ImageMap-%d.dat',Id);
     FID = fopen(FileName,'rb');
-    Image = fread(FID,[25*128,256],'uint8');
-    Image = reshape(Image,256,128,25);
+    Image = fread(FID,[25*64,64],'uint8');
+    Image = reshape(Image,64,64,25);
     fclose(FID);
 
     FileName = sprintf('../GeneratedData/LabelMap-%d.dat',Id);
     FID = fopen(FileName,'rb');
-    LabelMap = fread(FID,[128*256],'uint8')';
+    LabelMap = fread(FID,[64*64],'uint8')';
     fclose(FID);
-    LabelMap = reshape(LabelMap,256,128);
+    LabelMap = reshape(LabelMap,64,64);
 
     FileName = sprintf('../GeneratedData/Detections-%d.dat',Id);
     FID = fopen(FileName,'rb');
-    Detections = fread(FID,[128+256],'uint8')';
+    Detections = fread(FID,[64+64],'uint8')';
     fclose(FID);
-    LabelMap = reshape(LabelMap,256,128);
-    Bins = Detections(1:256);
-    Frames = Detections(257:end);
+    LabelMap = reshape(LabelMap,64,64);
+    Bins = Detections(1:64);
+    Frames = Detections(65:end);
     Bin = find(Bins); Frame = find(Frames);
     
     % Plot the watefall in the upper left 3/4 of the plot
@@ -60,7 +60,7 @@ for Id = Ids(:)'
     Marginal = max(LabelMap,[],2);
     plot(Marginal,1:length(Marginal),'.');
     axis tight
-    Temp = axis; Temp(1:2) = [0.5 1.5]; axis(Temp);
+    Temp = axis; Temp(1:2) = [0.5 2.5]; axis(Temp);
     set(gca,'XTick',[]); set(gca,'YTick',[]);
     set(gca,'XTick',[],'YTick',[]);
     
@@ -68,7 +68,7 @@ for Id = Ids(:)'
     Marginal = max(LabelMap,[],1);
     plot(1:length(Marginal),Marginal,'.');
     axis tight
-    Temp = axis; Temp(3:4) = [0.5 1.5]; axis(Temp);
+    Temp = axis; Temp(3:4) = [0.5 2.5]; axis(Temp);
     set(gca,'XTick',[]); set(gca,'YTick',[]);
     
     fprintf('Key TO Continue\n');
