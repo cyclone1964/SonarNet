@@ -279,15 +279,15 @@ while (epoch < 2000):
                   torch.gt(batchBinValues,0.5) & 
                   torch.gt(batchFrameValues,0.5) & 
                   torch.eq(predBinIndices,batchBinIndices) &
-                  torch.eq(predFrameIndices,batchFrameIndices)).numpy()
+                  torch.eq(predFrameIndices,batchFrameIndices)).cpu().numpy()
         numCorrect += np.sum(np.where(states,1,0))
 
         states = (torch.le(predBinValues,0.5) &
                   torch.le(predFrameValues,0.5) & 
                   torch.le(batchBinValues,0.5) & 
-                  torch.le(batchFrameValues,0.5)).numpy()
+                  torch.le(batchFrameValues,0.5)).cpu().numpy()
         numCorrect += np.sum(np.where(states,1,0))
-        numTotal += 1
+        numTotal += state.shape[0]
 
     # Now, the first time through , we have to have an extra 
     trainPerformance.append(float(numCorrect)/float(numTotal))
@@ -298,6 +298,8 @@ while (epoch < 2000):
     numCorrect = 0
     for X_val, y_val in validationLoader:
 
+        X_val = X_val.to(device)
+        y_val = y_val.to(device)
         y_pred = model.forward(X_val)
 
         predBinValues,predBinIndices = torch.max(y_pred[:,1:256],dim=1)
@@ -315,15 +317,15 @@ while (epoch < 2000):
                   torch.gt(valBinValues,0.5) & 
                   torch.gt(valFrameValues,0.5) & 
                   torch.eq(predBinIndices,valBinIndices) &
-                  torch.eq(predFrameIndices,valFrameIndices)).numpy()
+                  torch.eq(predFrameIndices,valFrameIndices)).cpu().numpy()
         numCorrect += np.sum(np.where(states,1,0))
 
         states = (torch.le(predBinValues,0.5) &
                   torch.le(predFrameValues,0.5) & 
                   torch.le(valBinValues,0.5) & 
-                  torch.le(valFrameValues,0.5)).numpy()
+                  torch.le(valFrameValues,0.5)).cpu().numpy()
         numCorrect += np.sum(np.where(states,1,0))
-        numTotal += 1
+        numTotal += states.shape[0]
 
     # Add this to the performance numbers
     valPerformance.append(float(numCorrect)/float(numTotal))
