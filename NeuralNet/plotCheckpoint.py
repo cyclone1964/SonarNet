@@ -10,10 +10,17 @@ fileName = 'CheckPoint-' + sys.argv[1] + '.pth'
 checkpoint = torch.load(fileName,map_location="cpu")
 
 losses = checkpoint['losses']
+valPerformance = checkpoint['valPerformance']
+trainPerformance = checkpoint['trainPerformance']
 epoch = checkpoint['epoch']
 
 plt.figure()
 plt.plot(losses)
 plt.title(fileName + ": " + str(epoch))
+
+plt.figure()
+plt.plot(valPerformance,'b')
+plt.plot(trainPerformance,'k')
+plt.title('Performance: ' + fileName)
 plt.show()
 
