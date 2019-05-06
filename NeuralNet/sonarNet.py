@@ -93,8 +93,7 @@ class SonarDataset(Dataset):
         y = np.fromfile(self.root_dir + '/LabelMap-' +
                         str(self.directory[index]) + '.dat',
                        dtype='uint8').astype(float)
-        y.shape = (4096,1)
-        y = np.min(y,1)
+        y = np.minimum(y,1)
         y = torch.from_numpy(y).float()
         
         return X, y
@@ -140,24 +139,6 @@ class SonarNet(nn.Module):
             nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
                          dilation=1,ceil_mode=False),
 
-#            nn.Conv2d(256,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-#            nn.ReLU(inplace=True),
-#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-#            nn.ReLU(inplace=True),
-#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-#            nn.ReLU(inplace=True),
-#            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
-#                         dilation=1,ceil_mode=False),
-
-#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-#            nn.ReLU(inplace=True),
-#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-#            nn.ReLU(inplace=True),
-#            nn.Conv2d(512,512, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-#            nn.ReLU(inplace=True),
-#            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
-#                         dilation=1,ceil_mode=False),
-            
         )
         
         # And now the classifier layers, two fully connected layers
@@ -170,7 +151,6 @@ class SonarNet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(4096,4096),
-            nn.Softmax(dim=0)
         )
 
     # Now the forward propgation. This runs the front end, then feeds
@@ -261,7 +241,8 @@ while (epoch < 2000):
 
         # DO the preduction and add the loss
         y_pred = model.forward(X_batch)
-        loss = torch.nn.functional.mse_loss(y_pred,y_batch)
+        values,indices = torch.max(y_batch,1)
+        loss = torch.nn.functional.cross_entropy(y_pred,indices)
         
         # Back propagate
         loss.backward()
@@ -271,28 +252,11 @@ while (epoch < 2000):
         # Append the loss for this to the list
         losses.append(loss.item())
 
-        predBinValues,predBinIndices = torch.max(y_pred[:,1:256],dim=1)
-        predFrameValues,predFrameIndices = torch.max(y_pred[:,256:],dim=1)
+        predBinValues,predBinIndices = torch.max(y_pred,dim=1)
+        batchBinValues,batchBinIndices = torch.max(y_batch,dim=1)
 
-        batchBinValues,batchBinIndices = torch.max(y_batch[:,1:256],dim=1)
-        batchFrameValues,batchFrameIndices = torch.max(y_batch[:,256:],dim=1)
-
-        #  The mode is correct iff:
-        #
-        # There is no target and it found no target or
-        # there is a target and the model found it in the right places
-        states = (torch.gt(predBinValues,0.5) & 
-                  torch.gt(predFrameValues,0.5) & 
-                  torch.gt(batchBinValues,0.5) & 
-                  torch.gt(batchFrameValues,0.5) & 
-                  torch.eq(predBinIndices,batchBinIndices) &
-                  torch.eq(predFrameIndices,batchFrameIndices)).cpu().numpy()
-        numCorrect += np.sum(np.where(states,1,0))
-
-        states = (torch.le(predBinValues,0.5) &
-                  torch.le(predFrameValues,0.5) & 
-                  torch.le(batchBinValues,0.5) & 
-                  torch.le(batchFrameValues,0.5)).cpu().numpy()
+        #  The mode is correct iff the bin values match
+        states = (torch.eq(predBinIndices,batchBinIndices)).cpu().numpy()
         numCorrect += np.sum(np.where(states,1,0))
         numTotal += states.shape[0]
 
@@ -308,29 +272,14 @@ while (epoch < 2000):
         X_val = X_val.to(device)
         y_val = y_val.to(device)
         y_pred = model.forward(X_val)
+        print("Pred",y_pred)
+        
+        predBinValues,predBinIndices = torch.max(y_pred,dim=1)
+        valBinValues,valBinIndices = torch.max(y_val,dim=1)
 
-        predBinValues,predBinIndices = torch.max(y_pred[:,1:256],dim=1)
-        predFrameValues,predFrameIndices = torch.max(y_pred[:,256:],dim=1)
-
-        valBinValues,valBinIndices = torch.max(y_val[:,1:256],dim=1)
-        valFrameValues,valFrameIndices = torch.max(y_val[:,256:],dim=1)
-
-        #  The mode is correct iff:
-        #
-        # There is no target and it found no target or
-        # there is a target and the model found it in the right places
-        states = (torch.gt(predBinValues,0.5) & 
-                  torch.gt(predFrameValues,0.5) & 
-                  torch.gt(valBinValues,0.5) & 
-                  torch.gt(valFrameValues,0.5) & 
-                  torch.eq(predBinIndices,valBinIndices) &
-                  torch.eq(predFrameIndices,valFrameIndices)).cpu().numpy()
-        numCorrect += np.sum(np.where(states,1,0))
-
-        states = (torch.le(predBinValues,0.5) &
-                  torch.le(predFrameValues,0.5) & 
-                  torch.le(valBinValues,0.5) & 
-                  torch.le(valFrameValues,0.5)).cpu().numpy()
+        # The mode is correct iff the bin value right
+        # 
+        states = (torch.eq(predBinIndices,valBinIndices)).cpu().numpy()
         numCorrect += np.sum(np.where(states,1,0))
         numTotal += states.shape[0]
 
