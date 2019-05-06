@@ -1,5 +1,4 @@
-# This version implements a modified VGG but this time I implement a large
-# softmax layer in the output
+# This version implements a conv/deconv layer to do the detection
 
 # The first thing is to import all the things we need
 #
@@ -90,10 +89,10 @@ class SonarDataset(Dataset):
         X = torch.from_numpy(X).float()
 
         # And similarly the detections ...
-        y = np.fromfile(self.root_dir + '/LabelMap-' +
+        y = np.fromfile(self.root_dir + '/Detections-' +
                         str(self.directory[index]) + '.dat',
                        dtype='uint8').astype(float)
-        y = np.minimum(y,1)
+        y = np.minimum(np.maximum(y,0.25),0.75)
         y = torch.from_numpy(y).float()
         
         return X, y
@@ -111,46 +110,45 @@ class SonarNet(nn.Module):
         # small convolutions, each constrained to only it's individual
         # plane (which is to say sonar beam), followed by two more
         # that span the beams and provide for inter-beam learning
-        # opportunities.
-        
+        # opportunities. The inputs and outpus are 25x64x64
         self.frontEnd = nn.Sequential(
             ## This is almost cut and paste from VGG16 except that the
             ## number of input planes is radically different.
-            nn.Conv2d(25,64, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.Conv2d(25,25, groups = 25,
+                      kernel_size=(7,7),stride=(1,1),padding = (3,3)),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64,64, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
-                         dilation=1,ceil_mode=False),
-            
-            nn.Conv2d(64,128, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(128,128, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
+            nn.MaxPool2d(kernel_size=5, stride=1,padding=2,
                          dilation=1,ceil_mode=False),
 
-            nn.Conv2d(128,256, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
+            nn.Conv2d(25,25,
+                      kernel_size=(11,11),stride=(1,1),padding = (5,5)),
             nn.ReLU(inplace=True),
-            nn.Conv2d(256,256, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256,256, kernel_size=(3,3),stride=(1,1),padding = (1,1)),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2,padding=0,
-                         dilation=1,ceil_mode=False),
-
+            nn.MaxPool2d(kernel_size=3, stride=1,padding=1,
+                         dilation=1,ceil_mode=False)
         )
-        
+
+        # now plane to get the frame flags
+        self.framePlane = nn.Sequential(
+            nn.Conv2d(25,64,
+                      kernel_size=(11,11),stride=(1,1),padding = (5,5)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size = (64,64),stride = (1,1),padding=0)
+        )
+                      
+        self.binPlane = nn.Sequential(
+            nn.Conv2d(25,64,
+                      kernel_size=(11,11),stride=(1,1),padding = (5,5)),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size = (64,64),stride = (1,1),padding=0)
+        )
+
         # And now the classifier layers, two fully connected layers
         self.classifier = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(512 * 4 * 8, 4096),
+            nn.Linear(128,128),
             nn.ReLU(inplace=True),
             nn.Dropout(),
-            nn.Linear(4096,4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096,4096),
+            nn.Linear(128,128)
         )
 
     # Now the forward propgation. This runs the front end, then feeds
@@ -158,15 +156,21 @@ class SonarNet(nn.Module):
     # them, and makes the output.
     def forward(self, x):
         
-        # Run the front end
+        # First, lets do the three sets of convolutions
         front = self.frontEnd(x)
 
-        # Flatten it
-        flat = front.view(front.size(0),512 * 4 * 8)
+        frames = self.framePlane(front)
+        bins = self.binPlane(front)
+
+        # Flatten and classify
+        frames=frames.view(frames.size(0),64)
+        bins=bins.view(bins.size(0),64)
+
+        flat=torch.cat((bins,frames),1)
         
         # Run the classifier on them both
-        x = self.classifier(flat)
-        return x
+        y = self.classifier(flat)
+        return y
 
 # Set up the data set
 dataDir = '../GeneratedData'
@@ -175,8 +179,8 @@ validationSet = SonarDataset(dataDir,partition = 'validate')
 
 # Now, let's try to train a network!! First, set up the data loader
 # from the training set above with a batch size of 20 for now.
-trainingLoader = DataLoader(trainingSet,batch_size = 10)
-validationLoader = DataLoader(validationSet,batch_size=10)
+trainingLoader = DataLoader(trainingSet,batch_size = 20)
+validationLoader = DataLoader(validationSet,batch_size = 20)
 
 # Create the sonarnet, insuring that it is implemented in floats not
 # doubles since it runs faster.
@@ -241,8 +245,7 @@ while (epoch < 2000):
 
         # DO the preduction and add the loss
         y_pred = model.forward(X_batch)
-        values,indices = torch.max(y_batch,1)
-        loss = torch.nn.functional.cross_entropy(y_pred,indices)
+        loss = torch.nn.functional.mse_loss(y_pred,y_batch)
         
         # Back propagate
         loss.backward()
@@ -263,7 +266,6 @@ while (epoch < 2000):
     # Now, the first time through , we have to have an extra 
     trainPerformance.append(float(numCorrect)/float(numTotal))
     
-    
     # Now let us do the validation
     numTotal = 0
     numCorrect = 0
@@ -272,13 +274,11 @@ while (epoch < 2000):
         X_val = X_val.to(device)
         y_val = y_val.to(device)
         y_pred = model.forward(X_val)
-        print("Pred",y_pred)
         
         predBinValues,predBinIndices = torch.max(y_pred,dim=1)
         valBinValues,valBinIndices = torch.max(y_val,dim=1)
 
         # The mode is correct iff the bin value right
-        # 
         states = (torch.eq(predBinIndices,valBinIndices)).cpu().numpy()
         numCorrect += np.sum(np.where(states,1,0))
         numTotal += states.shape[0]
