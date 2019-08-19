@@ -14,6 +14,8 @@
 % the sonar and what the Doppler (this is an X/Y/Z/Doppler/valid
 % fivetuple)
 
+function makeTrainingData(path, num_samples)
+
 % Set up the receive beams, steered every 9 degrees
 Steerings = ...
     [zeros(1,25)
@@ -22,8 +24,9 @@ Steerings = ...
 ReceiveDirections = computeDirection(Steerings * pi/180);
 
 % Let's make a lot of these
-SampleIndex = 38160;
-while (SampleIndex < 40000)
+SampleIndex = 0;
+% while (SampleIndex < 40000)
+while (SampleIndex < num_samples)
     
     % The environment has these things randomized:
     % WaterDepth, WindSpeed, and GrainSize
@@ -119,7 +122,7 @@ while (SampleIndex < 40000)
 
     % Now write the images into a file uniquely named from the time
     Id = mod(round(24*60*60*100*now),1000000000);
-    FileName = sprintf('../GeneratedData/ImageMap-%.0f.dat',Id);
+    FileName = sprintf(strcat(path, 'ImageMap-', int2str(Id), '.dat'));
     FID = fopen(FileName,'w');
     
     % Now do all the processing to generate the images for each or
@@ -154,7 +157,7 @@ while (SampleIndex < 40000)
     end
     
     % Write that to a file
-    FileName = sprintf('../GeneratedData/LabelMap-%.0f.dat',Id);
+    FileName = sprintf(strcat(path, 'LabelMap-', int2str(Id), '.dat'));
     FID = fopen(FileName,'w');
     fwrite(FID,Labels(:),'uint8');
     fclose(FID);
@@ -178,7 +181,7 @@ while (SampleIndex < 40000)
     Detections = [BinFlags(:); RangeFlags(:)];
 
     % Write that to a file
-    FileName = sprintf('../GeneratedData/Detections-%.0f.dat',Id);
+    FileName = sprintf(strcat(path, 'Detections-', int2str(Id), '.dat'));
     FID = fopen(FileName,'w');
     fwrite(FID,Detections(:),'uint8');
     fclose(FID);
@@ -201,7 +204,7 @@ while (SampleIndex < 40000)
         Index = Index + 5;
     end
     
-    FileName = sprintf('../GeneratedData/FeatureMap-%.0f.dat',Id);
+    FileName = sprintf(strcat(path, 'FeatureMap-', int2str(Id), '.dat'));
     FID = fopen(FileName,'w');
     fwrite(FID,Features(:),'float');
     fclose(FID);
