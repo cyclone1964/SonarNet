@@ -33,7 +33,7 @@ WindSpeed = ceil(Environment.Surface.WindSpeed);
 if (isempty(CurrentWindSpeed) | WindSpeed ~= CurrentWindSpeed)
   % Load the table for the given grain size
   CurrentWindSpeed = WindSpeed;
-  StrengthTable = load(['SRFSTR' num2str(WindSpeed,'%02d') '.dat']);
+  StrengthTable = load(['SRFSTR' num2str(WindSpeed,'%02d') '.DAT']);
   StrengthTable = reshape(StrengthTable(:,2), ...
 			  length(Angles), ...
 			  length(Frequencies))';
