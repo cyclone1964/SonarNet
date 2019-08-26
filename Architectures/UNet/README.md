@@ -26,8 +26,6 @@ In general, convolutional layers coupled with down sampling layers produce a low
 
 Skip connections gives the decoder access to the low-level features produced by the encoder layers.
 
-## How To
-
 ## Overview
 
 ### Data
@@ -86,6 +84,9 @@ Matt Daily's prior investigation in various types of machine learning technologi
 
 ### Future Outlook
 
+## Requirements
+
+## Installation
 
 ## Acknowledgements
 
