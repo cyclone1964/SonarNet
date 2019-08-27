@@ -2,9 +2,6 @@
 
 ![](assets/introduction/sonar/explained_sonar.png)
 
-<img src="assets/introduction/sonar/explained_sonar.png" allign="middle" max-height=50%/>
-
-
 Active sonar emits acoustic signals or pulse of sound into the water to detect objects. If an object is in the path of the sound pulse, the sound bounces off the object and returns an "echo" to the sonar transducer that is able to receive signals.
 
 This signal is propagated in various angles and each of these angles are represented in a spectrogram stack. Each single spectrogram frame will show if the object is detected from the echo. By determining time between the emission of the sound pulse and its reception, the transducer can determine the range and orientation of the object.
