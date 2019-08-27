@@ -59,7 +59,7 @@ For the purposes of our model, we only utilize `ImageMap-<id>.dat` and `LabelMap
 
 To generate sonar data:
 
-1. Make a directory to where you want your training data to live (e.g. `mkdir SonarNet/GeneratedData/train`)
+1. Make a directory to where you want your training data stored (e.g. `mkdir SonarNet/GeneratedData/train`)
 2. Open `SonarNet/AcousticModel` in MATLAB
 3. Run the following command to generate training data where the first argument is the relative path to your training directory and the second is number of samples
    ```
@@ -70,7 +70,7 @@ To generate sonar data:
    zsh makeDirectory.zsh
    ```
 
-*Note - You'll need to set the global paths for your data in `U-Net-SonarNet.ipynb`*
+_Note - You'll need to set the global paths for your data in `U-Net-SonarNet.ipynb`_
 
 ## Overview
 
@@ -90,21 +90,21 @@ Our main objective is to use underwater sensor data to detect and classify targe
 
 ![](assets/project/segmentation/teaser.png)
 
-Since pixel-wise image segmentation is a well-studied problem in the computer vision literature and it can be easily modified to handle detection and classification, we thought we would start there.
+Since [pixel-wise image segmentation](https://divamgupta.com/image-segmentation/2019/06/06/deep-learning-semantic-segmentation-keras.html) is a well-studied problem in the computer vision literature and it can be easily modified to handle detection and classification, we thought we would start there.
 
-We based our model on the U-Net architecture that yields precise segmentation of neuronal structures in electron microscopic stacks with very few training images.
+We based our model on [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/pdf/1505.04597.pdf) that yields precise segmentation of neuronal structures in electron microscopic stacks with very few training images.
 
 ![](assets/project/unet/unet_explained.png)
 
 The main ideas behind U-Net's architecture consists of an encoder and decoder structure with skip connections.
 
-***Q: What is an encoder and decoder structure?***
+**_Q: What is an encoder and decoder structure?_**
 
 In general, convolutional layers coupled with down sampling layers produce a low-resolution tensor containing the high-level information about the image. Taking this low-resolution spatial tensor, we need to produce high-resolution segmentation outputs. To do this, we need mirrored convolutional layers that utilize up sampling instead of down sampling to get back the low-level information. This is known as an encoder-decoder structure.
 
-***Q: What are skip connections?***
+**_Q: What are skip connections?_**
 
-Skip connections gives the decoder access to the low-level features produced by the encoder layers.
+Skip connections give the decoder access to the low-level features produced by the encoder layers.
 
 #### Data Pre-processing
 
@@ -167,7 +167,7 @@ Another issue that we've noticed from testing is that if the target is fully cov
 
 <img src="assets/challenges/problem_2.png" width="600"/>
 
-Current computer vision methods are tested and built under the assumption that we are working with dimensions that fall under the category of real color models such as RGB and CMYK.
+Current computer vision methods are tested and built under the assumption that we are working with dimensions that fall under the category of real [color models](https://en.wikipedia.org/wiki/Color_model) such as RGB and CMYK.
 With sonar images, we are dealing with 25 dimensions of “color” that represent the angles of the images. It is uncertain and unclear how this representation is affecting the model and the learning process it undergoes.
 
 Recall that our model was getting 99.6 % accuracy over 5000 training samples. We were skeptical that the model was doing so well and hypothesized that it was learning to not segment the target to minimize loss due to the small size of the target compared to large size of the image.
@@ -191,13 +191,3 @@ The simulation that creates the data is not meant to be accurate nor predictive,
 I'd like to thank my collaborator, Matt Daily, for his machine learning efforts and subject matter expertise on Active Sonar Systems. Lastly, I’d like to give thanks Raytheon BBN Technologies for giving me the opportunity to expand the machine learning marketing efforts. 
 
 Thank you.
-
-## References
-
-- https://arxiv.org/pdf/1505.04597.pdf
-  
-- https://divamgupta.com/image-segmentation/2019/06/06/deep-learning-semantic-segmentation-keras.html
-  
-- https://arxiv.org/pdf/1505.04597.pdf
-  
-- https://en.wikipedia.org/wiki/Color_model
