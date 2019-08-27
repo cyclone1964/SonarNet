@@ -89,7 +89,7 @@ For starters, the current sonar images that has been shown has been "tweaked" qu
 Above, the image to the left is a tweaked "tweaked" sonar image that you've seen that has had the volume and boundary reverb adjusted.
 The image on the right is an example of a realistic sonar image representing actualy surface and bottom reverberation where the target isn’t as loud. As you can see, the sonar image has been changed drastically to “play nice” with the model. If we are to correctly build a representative model of real sonar images, we would need to be able to handle the cases of boundary reverberation.
 
-<img src="assets/challenges/problem_1.png" width="600"/>
+<img src="assets/challenges/problem_1.png" width="720"/>
 
 <img src="assets/challenges/problem_2.png" width="600"/>
 
