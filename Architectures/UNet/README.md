@@ -13,7 +13,7 @@ Python 3.7, Tensorflow 1.14, Keras 2.2 and other common packages are listed in `
    ```
    conda create -n unet_env python=3.7
    ```
-3. Activate this environment.
+3. Activate this environment
 4. To install dependencies via `conda` and to avoid all dependencies failing to install if one package fails (found [here](https://gist.github.com/luiscape/19d2d73a8c7b59411a2fb73a697f5ed4))
     ```
     while read requirement; do conda install --yes $requirement; done < requirements.txt 
@@ -28,14 +28,14 @@ Python 3.7, Tensorflow 1.14, Keras 2.2 and other common packages are listed in `
    jupyter notebook U-Net-SonarNet.ipynb
    ```
 
-    ***Update: There was a tensorflow bug that led to the following error***
+    **_Update: There was a tensorflow bug that led to the following error_**
 
    ```
    AbortedError: Operation received an exception:Status: 5, message: could not create a view primitive descriptor, in file tensorflow/core/kernels/mkl_slice_op.cc:433
         [[{{node training/Adam/gradients/concatenate_4/concat_grad/Slice_1}}]]
    ```
    
-   ***If you get this error, to fix it, run the following command to update tensorflow to the eigen package so the error doesn't appear (bug report found [here](https://github.com/tensorflow/tensorflow/issues/17494#issuecomment-511231733)).***
+   **_If you get this error, to fix it, run the following command to update tensorflow to the eigen package so the error doesn't appear (bug report found [here](https://github.com/tensorflow/tensorflow/issues/17494#issuecomment-511231733))._**
 
    ```
    conda install tensorflow=1.14.0=mkl_py37h45c423b_0
@@ -65,20 +65,24 @@ To generate sonar data:
    ```
    makeTrainingData('../GeneratedData/train/', 1000)
    ```
-4. Next we need generate a `Directory.txt` file to list the image ids. To do this, configure the second line in the file `makeDirectory.zsh` to point to the path of your training data (e.g. `cd ../GeneratedData/train`) and run the script within your given shell
+4. Next, we need generate a `Directory.txt` file to list the image ids. To do this, configure the second line in the script `makeDirectory.zsh` to point to the path of your training data (e.g. `cd ../GeneratedData/train`) and run the script while in `SonarNet/AcousticModel` within your given shell (i.e. `zsh`)
    ```
    zsh makeDirectory.zsh
    ```
 
-*Note - You'll need to set the global paths for your data in `U-Net-SonarNet.ipynb`.*
+*Note - You'll need to set the global paths for your data in `U-Net-SonarNet.ipynb`*
 
 ## Overview
+
+### Introduction
 
 ![](assets/introduction/sonar/explained_sonar.png)
 
 Active sonar emits acoustic signals or pulse of sound into the water to detect objects. If an object is in the path of the sound pulse, the sound bounces off the object and returns an "echo" to the sonar transducer that is able to receive signals.
 
 This signal is propagated in various angles and each of these angles are represented in a spectrogram stack. Each single spectrogram frame will show if the object is detected from the echo. By determining time between the emission of the sound pulse and its reception, the transducer can determine the range and orientation of the object.
+
+### Project
 
 <img src="assets/introduction/sonar/objective.png" width="720"/>
 
@@ -102,13 +106,13 @@ In general, convolutional layers coupled with down sampling layers produce a low
 
 Skip connections gives the decoder access to the low-level features produced by the encoder layers.
 
-### Data Pre-processing
+#### Data Pre-processing
 
 The sonar images (i.e. `ImageMap-<id>.dat`) and true masks (i.e. `LabelMap-<id>.dat`) for the training and testing data are stored as numpy arrays.
 
 Post pre-processing, the shape of the images and true masks are `64x64x25` and `64x64x1` respectively.
 
-### Model
+#### Model
 
 The current model is based on the U-Net architecture with some additional features.
 
@@ -124,13 +128,13 @@ Down-sampling is represented in the `MaxPooling2D` layers in the encoder and up-
 
 An [Adam Optimizer](https://arxiv.org/pdf/1412.6980.pdf) and [Binary Cross-Entropy Loss](https://towardsdatascience.com/understanding-binary-cross-entropy-log-loss-a-visual-explanation-a3ac6025181a) is used to configure the model for training along with the standard accuracy metric.
 
-### Training
+#### Training
 
 `EarlyStopping` is used to stop training the model when the loss stops improving over 5 epochs with no improvement. Additionally, `ModelCheckpoint` will save the best model after every epoch as `SonarNet-UNet.h5`.
 
 We fit the model on 5000 sampled training data, using a validation split of 25%. We used a relatively small batch size of 8 because of the small amount of data used over 30 epochs.
 
-### Results
+#### Results
 
 Here are some example detections on some random training samples.
 
@@ -172,12 +176,12 @@ Recall that our model was getting 99.6 % accuracy over 5000 training samples. We
 
 Analyzing the data, this seems to be true since a solid portion of the predictive masks did not segment a target. This is a major issue that is drastically skewing the accuracy of the model and if this is to be fixed, there needs to be a way to effectively penalize the model for not segmenting a target where there is one.
 
-### Future Outlook
+### Closing
+
+<img src="assets/closing/future.png" width="720"/>
 
 US active sonar for detection, classification, localization, and tracking are becoming ineffective in untested environments and conditions. The current state of the art methods are time consuming, imprecise, and limited by continuous human analysis of having to review each detection in real time.
 To improve these active sonar technologies’ performance, we need to utilize Deep Learning techniques to improve robustness and predictability of the Navy's active sonar objectives.
-
-<img src="assets/closing/future.png" width="720"/>
 
 Looking forward, the techniques and issues we've explored during my internship are only as good as the data that is fed into the model.
 The simulation that creates the data is not meant to be accurate nor predictive, only representative of a pulsed, narrow-beam, narrow-band high frequency sonar and by association, any model based on this data may not be very accurate. Before a minimum viable product can be produced, the work we've done along with acquiring accurate sonar data needs to be vetted further.
