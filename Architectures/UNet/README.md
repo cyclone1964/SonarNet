@@ -98,7 +98,11 @@ Another issue that we've noticed from testing is that if the target is fully cov
 Current computer vision methods are tested and built under the assumption that we are working with dimensions that fall under the category of real color models such as RGB and CMYK.
 With sonar images, we are dealing with 25 dimensions of “color” that represent the angles of the images. It is uncertain and unclear how this representation is affecting the model and the learning process it undergoes.
 
+Recall that our model was getting 99.6 % accuracy over 5000 training samples. We were skeptical that the model was doing so well and hypothesized that it was learning to not segment the target to minimize loss due to the small size of the target compared to large size of the image.
+
 ![](assets/challenges/problem_3.png)
+
+Analyzing the data, this seems to be true since a solid portion of the predictive masks did not segment a target. This is a major issue that is drastically skewing the accuracy of the model and if this is to be fixed, there needs to be a way to effectively penalize the model for not segmenting a target where there is one.
 
 
 ### Future Outlook
