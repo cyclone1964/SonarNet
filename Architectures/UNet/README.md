@@ -9,7 +9,7 @@ Active sonar emits acoustic signals or pulse of sound into the water to detect o
 
 This signal is propagated in various angles and each of these angles are represented in a spectrogram stack. Each single spectrogram frame will show if the object is detected from the echo. By determining time between the emission of the sound pulse and its reception, the transducer can determine the range and orientation of the object.
 
-![](assets/introduction/sonar/objective.png)
+<img src="assets/introduction/sonar/objective.png" width="720"/>
 
 Our main objective is to use underwater sensor data to detect and classify targets that will return the range, angles, and Doppler of a target. We would also want to quantify the confidence of this detection and classification via a confidence score of some sort.
 
@@ -79,7 +79,7 @@ The current architecture started to average 99.6% accuracy and a 6.3% loss score
 
 We evaluated the model on 500 separate testing data and got scores of 99.58% accuracy and 6.69% loss. This tends to be good sign when your training and testing accuracy are high and roughly the same but overfitting could also be at play.
 
-<img src="assets/project/results/ml_methods.png" width="720"/>
+<img src="assets/project/results/ml_methods.png" width="600"/>
 
 Matt Daily's prior investigation in various types of machine learning technologies to detect simple echoes with presence of reverberation and background noise has shown dominate results using SVMs with accuracy of 79.8%. Although our U-Net CNN implementation currently obtains around 99.6% accuracy, it comes with a few caveats that I will go into a bit towards the end of the challenges section.
 
