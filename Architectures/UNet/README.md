@@ -81,6 +81,8 @@ We evaluated the model on 500 separate testing data and got scores of 99.58% acc
 
 ![](assets/project/results/ml_methods.png)
 
+<img src="assets/project/results/ml_methods.png" allign="middle" max-height=50%/>
+
 Matt Daily's prior investigation in various types of machine learning technologies to detect simple echoes with presence of reverberation and background noise has shown dominate results using SVMs with accuracy of 79.8%. Although our U-Net CNN implementation currently obtains around 99.6% accuracy, it comes with a few caveats that I will go into a bit towards the end of the challenges section.
 
 ### Challenges
