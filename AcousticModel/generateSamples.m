@@ -34,10 +34,10 @@ Properties.SourceLevel = 220;
 Properties.PulseLength = 0.050;
 Properties.CycleLength = 2.75;
 Properties.PlatformState = initializePlatformState;
-Properties.BackgroundLevel = 80;
+Properties.BackgroundLevel = 20;
 Properties.ReceiveSteerings = [0;0];
-Properties.VolumeReverbAdjustment = 0;
-Properties.BoundaryReverbAdjustment = [0 0]';
+Properties.VolumeReverbAdjustment = -80;
+Properties.BoundaryReverbAdjustment = [-150 -150]';
 
 Properties = setProperties(Properties,varargin{:});
 

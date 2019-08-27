@@ -29,7 +29,7 @@ GrainSize = round(Environment.Bottom.GrainSize(1));
 if (isempty(CurrentGrainSize) | GrainSize ~= CurrentGrainSize)
   % Load the table for the given grain size
   CurrentGrainSize = GrainSize;
-  StrengthTable = load(['BTMSTR' num2str(GrainSize,'%+1d') '.dat']);
+  StrengthTable = load(['BTMSTR' num2str(GrainSize,'%+1d') '.DAT']);
   StrengthTable = reshape(StrengthTable(:,2), ...
 			  length(Angles), ...
 			  length(Frequencies))';
