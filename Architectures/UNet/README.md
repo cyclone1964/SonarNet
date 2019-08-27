@@ -69,19 +69,17 @@ We fit the model on 5000 sampled training data, using a validation split of 25%.
 
 Here are some example detections on some random training samples.
 
-![](assets/project/results/predictions.png)
+<img src="assets/project/results/predictions.png" width="720"/>
 
 As you can see, the predictions on the left and right returned a fairly accurate segmentation of the target where as the middle segmentation did not segment the target at all.
 
 The current architecture started to average 99.6% accuracy and a 6.3% loss score over 10 epochs of correctly segmenting a target.
 
-![](assets/project/results/model_accuracy.png)
-
-<img src="assets/project/results/model_accuracy.png" width="600"/>
+<img src="assets/project/results/model_accuracy.png" width="720"/>
 
 We evaluated the model on 500 separate testing data and got scores of 99.58% accuracy and 6.69% loss. This tends to be good sign when your training and testing accuracy are high and roughly the same but overfitting could also be at play.
 
-<img src="assets/project/results/ml_methods.png" width="600"/>
+<img src="assets/project/results/ml_methods.png" width="720"/>
 
 Matt Daily's prior investigation in various types of machine learning technologies to detect simple echoes with presence of reverberation and background noise has shown dominate results using SVMs with accuracy of 79.8%. Although our U-Net CNN implementation currently obtains around 99.6% accuracy, it comes with a few caveats that I will go into a bit towards the end of the challenges section.
 
