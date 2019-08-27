@@ -108,7 +108,7 @@ Analyzing the data, this seems to be true since a solid portion of the predictiv
 
 ### Future Outlook
 
-![](assets/closing/future.png)
+<img src="assets/closing/future.png" width="720"/>
 
 US active sonar for detection, classification, localization, and tracking are becoming ineffective in untested environments and conditions. The current state of the art methods are time consuming, imprecise, and limited by continuous human analysis of having to review each detection in real time.
 To improve these active sonar technologies’ performance, we need to utilize Deep Learning techniques to improve robustness and predictability of the Navy's active sonar objectives.
