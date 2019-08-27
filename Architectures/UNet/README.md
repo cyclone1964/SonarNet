@@ -13,7 +13,7 @@ Python 3.7, Tensorflow 1.14, Keras 2.2 and other common packages are listed in `
    ```
    conda create -n unet_env python=3.7
    ```
-3. Activate this environment
+3. Activate this environment and go to `SonarNet/Architectures/UNet`
 4. To install dependencies via `conda` and to avoid all dependencies failing to install if one package fails (found [here](https://gist.github.com/luiscape/19d2d73a8c7b59411a2fb73a697f5ed4))
     ```
     while read requirement; do conda install --yes $requirement; done < requirements.txt 
@@ -76,7 +76,7 @@ _Note - You'll need to set the global paths for your data in `U-Net-SonarNet.ipy
 
 ### Introduction
 
-![](assets/introduction/sonar/explained_sonar.png)
+![](../assets/introduction/sonar/explained_sonar.png)
 
 Active sonar emits acoustic signals or pulse of sound into the water to detect objects. If an object is in the path of the sound pulse, the sound bounces off the object and returns an "echo" to the sonar transducer that is able to receive signals.
 
@@ -84,17 +84,17 @@ This signal is propagated in various angles and each of these angles are represe
 
 ### Project
 
-<img src="assets/introduction/sonar/objective.png" width="720"/>
+<img src="../assets/introduction/sonar/objective.png" width="720"/>
 
 Our main objective is to use underwater sensor data to detect and classify targets that will return the range, angles, and Doppler of a target. We would also want to quantify the confidence of this detection and classification via a confidence score of some sort.
 
-![](assets/project/segmentation/teaser.png)
+![](../assets/project/segmentation/teaser.png)
 
 Since [pixel-wise image segmentation](https://divamgupta.com/image-segmentation/2019/06/06/deep-learning-semantic-segmentation-keras.html) is a well-studied problem in the computer vision literature and it can be easily modified to handle detection and classification, we thought we would start there.
 
 We based our model on [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/pdf/1505.04597.pdf) that yields precise segmentation of neuronal structures in electron microscopic stacks with very few training images.
 
-![](assets/project/unet/unet_explained.png)
+![](../assets/project/unet/unet_explained.png)
 
 The main ideas behind U-Net's architecture consists of an encoder and decoder structure with skip connections.
 
@@ -116,7 +116,7 @@ Post pre-processing, the shape of the images and true masks are `64x64x25` and `
 
 The current model is based on the U-Net architecture with some additional features.
 
-![](assets/project/current/model.png)
+![](../assets/project/current/model.png)
 
 We kept the basic encoder and decoder structure with skip connections but added dropout layers in-between the convolutional layers which set a fraction of the input units to 0 to prevent overfitting.
 
@@ -138,17 +138,17 @@ We fit the model on 5000 sampled training data, using a validation split of 25%.
 
 Here are some example detections on some random training samples.
 
-<img src="assets/project/results/predictions.png" width="720"/>
+<img src="../assets/project/results/predictions.png" width="720"/>
 
 As you can see, the predictions on the left and right returned a fairly accurate segmentation of the target where as the middle segmentation did not segment the target at all.
 
-<img src="assets/project/results/model_accuracy.png" width="720"/>
+<img src="../assets/project/results/model_accuracy.png" width="720"/>
 
 The current architecture started to average 99.6% accuracy and a 6.3% loss score over 10 epochs of correctly segmenting a target.
 
 We evaluated the model on 500 separate testing data and got scores of 99.58% accuracy and 6.69% loss. This tends to be good sign when your training and testing accuracy are high and roughly the same but overfitting could also be at play.
 
-<img src="assets/project/results/ml_methods.png" width="600"/>
+<img src="../assets/project/results/ml_methods.png" width="600"/>
 
 Matt Daily's prior investigation in various types of machine learning technologies to detect simple echoes with presence of reverberation and background noise has shown dominate results using SVMs with accuracy of 79.8%. Although our U-Net CNN implementation currently obtains around 99.6% accuracy, it comes with a few caveats that I will go into a bit towards the end of the challenges section.
 
@@ -156,21 +156,21 @@ Matt Daily's prior investigation in various types of machine learning technologi
 
 For starters, the current sonar images that has been shown has been "tweaked" quite a bit. Recall that in real water, depending on the bottom compositions and roughness of the water, the reverberation from the boundaries can be much higher than the reverberation from the volume.
 
-<img src="assets/challenges/problem_0.png" width="600"/>
+<img src="../assets/challenges/problem_0.png" width="600"/>
 
 Above, the image to the left is a "tweaked" sonar image that you've seen that has had the volume and boundary reverb adjusted.
 The image on the right is an example of a realistic sonar image representing actual surface and bottom reverberation where the target isn’t as loud. As you can see, the sonar image has been changed drastically to “play nice” with the model. If we are to correctly build a representative model of real sonar images, we would need to be able to handle the cases of boundary reverberation.
 
-<img src="assets/challenges/problem_1.png" width="720"/>
+<img src="../assets/challenges/problem_1.png" width="720"/>
 
 Another issue that we've noticed from testing is that if the target is fully covered by the reverberation ridge then the model almost never segments a target in a predicted mask. This could be a hard problem to solve since the reverberation ridge produced from the sonar transmission is stochastic which cannot be learned nor removed effectively.
 
-<img src="assets/challenges/problem_2.png" width="600"/>
+<img src="../assets/challenges/problem_2.png" width="600"/>
 
 Current computer vision methods are tested and built under the assumption that we are working with dimensions that fall under the category of real [color models](https://en.wikipedia.org/wiki/Color_model) such as RGB and CMYK.
 With sonar images, we are dealing with 25 dimensions of “color” that represent the angles of the images. It is uncertain and unclear how this representation is affecting the model and the learning process it undergoes.
 
-![](assets/challenges/problem_3.png)
+![](../assets/challenges/problem_3.png)
 
 Recall that our model was getting 99.6 % accuracy over 5000 training samples. We were skeptical that the model was doing so well and hypothesized that it was learning to not segment the target to minimize loss due to the small size of the target compared to large size of the image.
 
@@ -178,7 +178,7 @@ Analyzing the data, this seems to be unfortunately true since a solid portion of
 
 ### Closing
 
-<img src="assets/closing/future.png" width="720"/>
+<img src="../assets/closing/future.png" width="720"/>
 
 US active sonar for detection, classification, localization, and tracking are becoming ineffective in untested environments and conditions. The current state of the art methods are time consuming, imprecise, and limited by continuous human analysis of having to review each detection in real time.
 To improve these active sonar technologies’ performance, we need to utilize deep learning techniques to improve robustness and predictability of the Navy's active sonar objectives.
@@ -188,6 +188,6 @@ The simulation that creates the data is not meant to be accurate nor predictive,
 
 ## Acknowledgements
 
-I'd like to thank my collaborator, Matt Daily, for his machine learning efforts and subject matter expertise on Active Sonar Systems. Lastly, I’d like to give thanks Raytheon BBN Technologies for giving me the opportunity to expand the machine learning marketing efforts. 
+I'd like to thank my collaborator, Matt Daily, for his machine learning efforts and subject matter expertise on Active Sonar Systems. Lastly, I’d like to give thanks Raytheon BBN Technologies for giving me the opportunity to expand the machine learning marketing efforts.
 
 Thank you.
