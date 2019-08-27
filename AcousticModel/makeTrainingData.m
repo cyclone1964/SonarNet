@@ -2,9 +2,9 @@
 % training data for my investigation into using Deep Learning to do
 % the detection process. The training data consists of:
 %
-% Cycles - sonar cycles. These have 9 image planes, each a
+% Cycles - sonar cycles. These have 25 image planes, each a
 % different interaction with either a target, a false target, or
-% nothing. As currently structured, these are 256x32x9 images with
+% nothing. As currently structured, these are 256x32x25 images with
 % values between 0 and 255 corresponding to waterfalls.
 %
 % LabelMaps - a single 256x32 image that is either 1 or 0 depending

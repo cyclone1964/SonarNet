@@ -31,16 +31,41 @@ Skip connections gives the decoder access to the low-level features produced by 
 ## Overview
 
 ### Data
-- [ ] Intro
-- [ ] how to generate data
-- [ ] how to run script to create Dictionary.txt
-- [ ] where to set global paths for data
+
+The acoustic model simulator generates samples of sonar images with a target embedding in each images.
+
+The simulator produces the following for each image `id`:
+
+- `ImageMap-<id>.dat`: 25 image planes with each being `64x64` image w/ values 0-255; thus, each image is of size `25x64x64`
+
+- `LabelMap-<id>.dat`: a single `64x64` image that is 1 or 0 for target or no target respectively across all planes
+    
+- `Detections-<id>.dat`: detection statistics
+  
+- `FeatureMap-<id>.dat`: file where the target is relative to the sonar
+
+For the purposes of our model, we only utilize `ImageMap-<id>.dat` and `LabelMap-<id>.dat`.
+
+To generate sonar data:
+
+1. Make a directory to where you want your training data to live (e.g. `mkdir SonarNet/GeneratedData/train`)
+2. Open `SonarNet/AcousticModel` in MATLAB
+3. Run the following command to generate training data where the first argument is the relative path to your training directory and the second is number of samples
+   ```
+   makeTrainingData('../GeneratedData/train/', 1000)
+   ```
+4. Next we need generate a `Directory.txt` file to list the image ids. To do this, configure the second line in the file `makeDirectory.zsh` to point to the path of your training data (e.g. `cd ../GeneratedData/train`) and run the script within your given shell
+   ```
+   zsh makeDirectory.zsh
+   ```
+
+*Note - You'll need to set the global paths for your data in `U-Net-SonarNet.ipynb`.*
 
 ### Data Pre-processing
 
-The sonar images (i.e. `ImageMap-{id}.dat`) and true masks (i.e. `LabelMap-{id}.dat`) for the training and testing data are stored as numpy arrays.
+The sonar images (i.e. `ImageMap-<id>.dat`) and true masks (i.e. `LabelMap-<id>.dat`) for the training and testing data are stored as numpy arrays.
 
-The shape of the images and true masks are `64x64x25` and `64x64x1` respectively.
+Post pre-processing, the shape of the images and true masks are `64x64x25` and `64x64x1` respectively.
 
 ### Model
 
@@ -119,7 +144,44 @@ The simulation that creates the data is not meant to be accurate nor predictive,
 
 ## Requirements
 
+MATLAB License to run the active sonar based data simulator.
+
+Python 3.7, Tensorflow 1.14, Keras 2.2 and other common packages are listed in `requirements.txt`.
+
 ## Installation
+
+1. Clone this repository
+2. Create virtual environment using `conda` (or `pip`) using a name of your choice (i.e. `unet_env`) and version of python
+   ```
+   conda create -n unet_env python=3.7
+   ```
+3. Activate this environment.
+4. To install dependencies via `conda` and to avoid all dependencies failing to install if one package fails (found [here](https://gist.github.com/luiscape/19d2d73a8c7b59411a2fb73a697f5ed4))
+    ```
+    while read requirement; do conda install --yes $requirement; done < requirements.txt 
+    ```
+
+5. To be able to select the `conda` environment you just created in a `jupyter notebook`, run the following command
+   ```
+   python -m ipykernel install --user --name unet_env --display-name "Python (unet_env)"
+   ```
+6. Startup the project
+   ```
+   jupyter notebook U-Net-SonarNet.ipynb
+   ```
+
+    ***Update: There was a tensorflow bug that led to the following error***
+
+   ```
+   AbortedError: Operation received an exception:Status: 5, message: could not create a view primitive descriptor, in file tensorflow/core/kernels/mkl_slice_op.cc:433
+        [[{{node training/Adam/gradients/concatenate_4/concat_grad/Slice_1}}]]
+   ```
+   
+   ***If you get this error, to fix it, run the following command to update tensorflow to the eigen package so the error doesn't appear (bug report found [here](https://github.com/tensorflow/tensorflow/issues/17494#issuecomment-511231733)).***
+
+   ```
+   conda install tensorflow=1.14.0=mkl_py37h45c423b_0
+   ```
 
 ## Acknowledgements
 
