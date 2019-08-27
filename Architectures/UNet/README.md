@@ -120,9 +120,9 @@ The current model is based on the U-Net architecture with some additional featur
 
 We kept the basic encoder and decoder structure with skip connections but added dropout layers in-between the convolutional layers which set a fraction of the input units to 0 to prevent overfitting.
 
-Each convolutional layer has a stride of `(3,3)` with `same` padding and `relu` activation.
+Each convolutional layer has a stride of `(3,3)` with `same` padding and `relu` activation. 
 
-Once an image is passed through model, we use a Sigmoid activation function layer to predict the probability of our output.
+Once an image is passed through model, we use a [sigmoid activation function](https://en.wikipedia.org/wiki/Sigmoid_function) layer to predict the probability of our output.
 
 Down-sampling is represented in the `MaxPooling2D` layers in the encoder and up-sampling in the `Conv2DTranspose` layers in the decoder, each with a stride of `(2,2)`.
 
@@ -158,30 +158,30 @@ For starters, the current sonar images that has been shown has been "tweaked" qu
 
 <img src="assets/challenges/problem_0.png" width="600"/>
 
-Above, the image to the left is a tweaked "tweaked" sonar image that you've seen that has had the volume and boundary reverb adjusted.
-The image on the right is an example of a realistic sonar image representing actualy surface and bottom reverberation where the target isn’t as loud. As you can see, the sonar image has been changed drastically to “play nice” with the model. If we are to correctly build a representative model of real sonar images, we would need to be able to handle the cases of boundary reverberation.
+Above, the image to the left is a "tweaked" sonar image that you've seen that has had the volume and boundary reverb adjusted.
+The image on the right is an example of a realistic sonar image representing actual surface and bottom reverberation where the target isn’t as loud. As you can see, the sonar image has been changed drastically to “play nice” with the model. If we are to correctly build a representative model of real sonar images, we would need to be able to handle the cases of boundary reverberation.
 
 <img src="assets/challenges/problem_1.png" width="720"/>
 
-Another issue that we've noticed from testing is that if the target is fully covered by the reverberation ridge then the model almost never segments a target in a predicted mask. This could be a hard problem to solve since the ridge produced from the sonar transmission is stochastic which cannot be learned nor removed effectively.
+Another issue that we've noticed from testing is that if the target is fully covered by the reverberation ridge then the model almost never segments a target in a predicted mask. This could be a hard problem to solve since the reverberation ridge produced from the sonar transmission is stochastic which cannot be learned nor removed effectively.
 
 <img src="assets/challenges/problem_2.png" width="600"/>
 
 Current computer vision methods are tested and built under the assumption that we are working with dimensions that fall under the category of real [color models](https://en.wikipedia.org/wiki/Color_model) such as RGB and CMYK.
 With sonar images, we are dealing with 25 dimensions of “color” that represent the angles of the images. It is uncertain and unclear how this representation is affecting the model and the learning process it undergoes.
 
-Recall that our model was getting 99.6 % accuracy over 5000 training samples. We were skeptical that the model was doing so well and hypothesized that it was learning to not segment the target to minimize loss due to the small size of the target compared to large size of the image.
-
 ![](assets/challenges/problem_3.png)
 
-Analyzing the data, this seems to be true since a solid portion of the predictive masks did not segment a target. This is a major issue that is drastically skewing the accuracy of the model and if this is to be fixed, there needs to be a way to effectively penalize the model for not segmenting a target where there is one.
+Recall that our model was getting 99.6 % accuracy over 5000 training samples. We were skeptical that the model was doing so well and hypothesized that it was learning to not segment the target to minimize loss due to the small size of the target compared to large size of the image.
+
+Analyzing the data, this seems to be unfortunately true since a solid portion of the predictive masks did not segment a target. This is a major issue that is drastically skewing the accuracy of the model and if this is to be fixed, there needs to be a way to effectively penalize the model for not segmenting a target where there is one.
 
 ### Closing
 
 <img src="assets/closing/future.png" width="720"/>
 
 US active sonar for detection, classification, localization, and tracking are becoming ineffective in untested environments and conditions. The current state of the art methods are time consuming, imprecise, and limited by continuous human analysis of having to review each detection in real time.
-To improve these active sonar technologies’ performance, we need to utilize Deep Learning techniques to improve robustness and predictability of the Navy's active sonar objectives.
+To improve these active sonar technologies’ performance, we need to utilize deep learning techniques to improve robustness and predictability of the Navy's active sonar objectives.
 
 Looking forward, the techniques and issues we've explored during my internship are only as good as the data that is fed into the model.
 The simulation that creates the data is not meant to be accurate nor predictive, only representative of a pulsed, narrow-beam, narrow-band high frequency sonar and by association, any model based on this data may not be very accurate. Before a minimum viable product can be produced, the work we've done along with acquiring accurate sonar data needs to be vetted further.
