@@ -1,36 +1,47 @@
 # Application of Image Segmentation Neural Networks to Sonar Detection and Classification
 
-![](assets/introduction/sonar/explained_sonar.png)
+## Requirements
 
-Active sonar emits acoustic signals or pulse of sound into the water to detect objects. If an object is in the path of the sound pulse, the sound bounces off the object and returns an "echo" to the sonar transducer that is able to receive signals.
+MATLAB License to run the active sonar based data simulator.
 
-This signal is propagated in various angles and each of these angles are represented in a spectrogram stack. Each single spectrogram frame will show if the object is detected from the echo. By determining time between the emission of the sound pulse and its reception, the transducer can determine the range and orientation of the object.
+Python 3.7, Tensorflow 1.14, Keras 2.2 and other common packages are listed in `requirements.txt`.
 
-<img src="assets/introduction/sonar/objective.png" width="720"/>
+## Installation
 
-Our main objective is to use underwater sensor data to detect and classify targets that will return the range, angles, and Doppler of a target. We would also want to quantify the confidence of this detection and classification via a confidence score of some sort.
+1. Clone this repository
+2. Create virtual environment using `conda` (or `pip`) using a name of your choice (i.e. `unet_env`) and version of python
+   ```
+   conda create -n unet_env python=3.7
+   ```
+3. Activate this environment.
+4. To install dependencies via `conda` and to avoid all dependencies failing to install if one package fails (found [here](https://gist.github.com/luiscape/19d2d73a8c7b59411a2fb73a697f5ed4))
+    ```
+    while read requirement; do conda install --yes $requirement; done < requirements.txt 
+    ```
 
-![](assets/project/segmentation/teaser.png)
+5. To be able to select the `conda` environment you just created in a `jupyter notebook`, run the following command
+   ```
+   python -m ipykernel install --user --name unet_env --display-name "Python (unet_env)"
+   ```
+6. Startup the project
+   ```
+   jupyter notebook U-Net-SonarNet.ipynb
+   ```
 
-Since pixel-wise image segmentation is a well-studied problem in the computer vision literature and it can be easily modified to handle detection and classification, we thought we would start there.
+    ***Update: There was a tensorflow bug that led to the following error***
 
-We based our model on the U-Net architecture that yields precise segmentation of neuronal structures in electron microscopic stacks with very few training images.
+   ```
+   AbortedError: Operation received an exception:Status: 5, message: could not create a view primitive descriptor, in file tensorflow/core/kernels/mkl_slice_op.cc:433
+        [[{{node training/Adam/gradients/concatenate_4/concat_grad/Slice_1}}]]
+   ```
+   
+   ***If you get this error, to fix it, run the following command to update tensorflow to the eigen package so the error doesn't appear (bug report found [here](https://github.com/tensorflow/tensorflow/issues/17494#issuecomment-511231733)).***
 
-![](assets/project/unet/unet_explained.png)
+   ```
+   conda install tensorflow=1.14.0=mkl_py37h45c423b_0
+   ```
 
-The main ideas behind U-Net's architecture consists of an encoder and decoder structure with skip connections.
-
-***Q: What is an encoder and decoder structure?***
-
-In general, convolutional layers coupled with down sampling layers produce a low-resolution tensor containing the high-level information about the image. Taking this low-resolution spatial tensor, we need to produce high-resolution segmentation outputs. To do this, we need mirrored convolutional layers that utilize up sampling instead of down sampling to get back the low-level information. This is known as an encoder-decoder structure.
-
-***Q: What are skip connections?***
-
-Skip connections gives the decoder access to the low-level features produced by the encoder layers.
-
-## Overview
-
-### Data
+## Data
 
 The acoustic model simulator generates samples of sonar images with a target embedding in each images.
 
@@ -60,6 +71,36 @@ To generate sonar data:
    ```
 
 *Note - You'll need to set the global paths for your data in `U-Net-SonarNet.ipynb`.*
+
+## Overview
+
+![](assets/introduction/sonar/explained_sonar.png)
+
+Active sonar emits acoustic signals or pulse of sound into the water to detect objects. If an object is in the path of the sound pulse, the sound bounces off the object and returns an "echo" to the sonar transducer that is able to receive signals.
+
+This signal is propagated in various angles and each of these angles are represented in a spectrogram stack. Each single spectrogram frame will show if the object is detected from the echo. By determining time between the emission of the sound pulse and its reception, the transducer can determine the range and orientation of the object.
+
+<img src="assets/introduction/sonar/objective.png" width="720"/>
+
+Our main objective is to use underwater sensor data to detect and classify targets that will return the range, angles, and Doppler of a target. We would also want to quantify the confidence of this detection and classification via a confidence score of some sort.
+
+![](assets/project/segmentation/teaser.png)
+
+Since pixel-wise image segmentation is a well-studied problem in the computer vision literature and it can be easily modified to handle detection and classification, we thought we would start there.
+
+We based our model on the U-Net architecture that yields precise segmentation of neuronal structures in electron microscopic stacks with very few training images.
+
+![](assets/project/unet/unet_explained.png)
+
+The main ideas behind U-Net's architecture consists of an encoder and decoder structure with skip connections.
+
+***Q: What is an encoder and decoder structure?***
+
+In general, convolutional layers coupled with down sampling layers produce a low-resolution tensor containing the high-level information about the image. Taking this low-resolution spatial tensor, we need to produce high-resolution segmentation outputs. To do this, we need mirrored convolutional layers that utilize up sampling instead of down sampling to get back the low-level information. This is known as an encoder-decoder structure.
+
+***Q: What are skip connections?***
+
+Skip connections gives the decoder access to the low-level features produced by the encoder layers.
 
 ### Data Pre-processing
 
@@ -140,48 +181,6 @@ To improve these active sonar technologies’ performance, we need to utilize De
 
 Looking forward, the techniques and issues we've explored during my internship are only as good as the data that is fed into the model.
 The simulation that creates the data is not meant to be accurate nor predictive, only representative of a pulsed, narrow-beam, narrow-band high frequency sonar and by association, any model based on this data may not be very accurate. Before a minimum viable product can be produced, the work we've done along with acquiring accurate sonar data needs to be vetted further.
-
-
-## Requirements
-
-MATLAB License to run the active sonar based data simulator.
-
-Python 3.7, Tensorflow 1.14, Keras 2.2 and other common packages are listed in `requirements.txt`.
-
-## Installation
-
-1. Clone this repository
-2. Create virtual environment using `conda` (or `pip`) using a name of your choice (i.e. `unet_env`) and version of python
-   ```
-   conda create -n unet_env python=3.7
-   ```
-3. Activate this environment.
-4. To install dependencies via `conda` and to avoid all dependencies failing to install if one package fails (found [here](https://gist.github.com/luiscape/19d2d73a8c7b59411a2fb73a697f5ed4))
-    ```
-    while read requirement; do conda install --yes $requirement; done < requirements.txt 
-    ```
-
-5. To be able to select the `conda` environment you just created in a `jupyter notebook`, run the following command
-   ```
-   python -m ipykernel install --user --name unet_env --display-name "Python (unet_env)"
-   ```
-6. Startup the project
-   ```
-   jupyter notebook U-Net-SonarNet.ipynb
-   ```
-
-    ***Update: There was a tensorflow bug that led to the following error***
-
-   ```
-   AbortedError: Operation received an exception:Status: 5, message: could not create a view primitive descriptor, in file tensorflow/core/kernels/mkl_slice_op.cc:433
-        [[{{node training/Adam/gradients/concatenate_4/concat_grad/Slice_1}}]]
-   ```
-   
-   ***If you get this error, to fix it, run the following command to update tensorflow to the eigen package so the error doesn't appear (bug report found [here](https://github.com/tensorflow/tensorflow/issues/17494#issuecomment-511231733)).***
-
-   ```
-   conda install tensorflow=1.14.0=mkl_py37h45c423b_0
-   ```
 
 ## Acknowledgements
 
