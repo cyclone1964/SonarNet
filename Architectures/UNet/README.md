@@ -91,8 +91,14 @@ The image on the right is an example of a realistic sonar image representing act
 
 <img src="assets/challenges/problem_1.png" width="720"/>
 
+Another issue that we've noticed from testing is that if the target is fully covered by the reverberation ridge then the model almost never segments a target in a predicted mask. This could be a hard problem to solve since the ridge produced from the sonar transmission is stochastic which cannot be learned nor removed effectively.
+
 <img src="assets/challenges/problem_2.png" width="600"/>
 
+Current computer vision methods are tested and built under the assumption that we are working with dimensions that fall under the category of real color models such as RGB and CMYK.
+With sonar images, we are dealing with 25 dimensions of “color” that represent the angles of the images. It is uncertain and unclear how this representation is affecting the model and the learning process it undergoes.
+
+![](assets/challenges/problem_3.png)
 
 
 ### Future Outlook
