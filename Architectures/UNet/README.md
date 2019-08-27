@@ -84,7 +84,9 @@ Matt Daily's prior investigation in various types of machine learning technologi
 
 For starters, the current sonar images that has been shown has been "tweaked" quite a bit. Recall that in real water, depending on the bottom compositions and roughness of the water, the reverberation from the boundaries can be much higher than the reverberation from the volume.
 
-![](assets/challenges/problem_0.png)
+<img src="assets/challenges/problem_0.png" width="720"/>
+
+<img src="assets/challenges/problem_0.png" width="600"/>
 
 Above, the image to the left is a tweaked "tweaked" sonar image that you've seen that has had the volume and boundary reverb adjusted.
 The image on the right is an example of a realistic sonar image representing actualy surface and bottom reverberation where the target isn’t as loud. As you can see, the sonar image has been changed drastically to “play nice” with the model. If we are to correctly build a representative model of real sonar images, we would need to be able to handle the cases of boundary reverberation.
