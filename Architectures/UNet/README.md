@@ -77,11 +77,11 @@ The current architecture started to average 99.6% accuracy and a 6.3% loss score
 
 ![](assets/project/results/model_accuracy.png)
 
+<img src="assets/project/results/model_accuracy.png" width="600"/>
+
 We evaluated the model on 500 separate testing data and got scores of 99.58% accuracy and 6.69% loss. This tends to be good sign when your training and testing accuracy are high and roughly the same but overfitting could also be at play.
 
-![](assets/project/results/ml_methods.png)
-
-<img align="middle" src="assets/project/results/ml_methods.png" width="600"/>
+<img src="assets/project/results/ml_methods.png" width="600"/>
 
 Matt Daily's prior investigation in various types of machine learning technologies to detect simple echoes with presence of reverberation and background noise has shown dominate results using SVMs with accuracy of 79.8%. Although our U-Net CNN implementation currently obtains around 99.6% accuracy, it comes with a few caveats that I will go into a bit towards the end of the challenges section.
 
