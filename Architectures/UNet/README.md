@@ -10,6 +10,8 @@ This signal is propagated in various angles and each of these angles are represe
 
 Our main objective is to use underwater sensor data to detect and classify targets that will return the range, angles, and Doppler of a target. We would also want to quantify the confidence of this detection and classification via a confidence score of some sort.
 
+![](assets/project/segmentation/teaser.png)
+
 Since pixel-wise image segmentation is a well-studied problem in the computer vision literature and it can be easily modified to handle detection and classification, we thought we would start there.
 
 We based our model on the U-Net architecture that yields precise segmentation of neuronal structures in electron microscopic stacks with very few training images.
@@ -104,8 +106,15 @@ Recall that our model was getting 99.6 % accuracy over 5000 training samples. We
 
 Analyzing the data, this seems to be true since a solid portion of the predictive masks did not segment a target. This is a major issue that is drastically skewing the accuracy of the model and if this is to be fixed, there needs to be a way to effectively penalize the model for not segmenting a target where there is one.
 
-
 ### Future Outlook
+
+![](assets/closing/future.png)
+
+US active sonar for detection, classification, localization, and tracking are becoming ineffective in untested environments and conditions. The current state of the art methods are time consuming, imprecise, and limited by continuous human analysis of having to review each detection in real time.
+To improve these active sonar technologies’ performance, we need to utilize Deep Learning techniques to improve robustness and predictability of the Navy's active sonar objectives.
+
+Looking forward, the techniques and issues we've explored during my internship are only as good as the data that is fed into the model.
+The simulation that creates the data is not meant to be accurate nor predictive, only representative of a pulsed, narrow-beam, narrow-band high frequency sonar and by association, any model based on this data may not be very accurate. Before a minimum viable product can be produced, the work we've done along with acquiring accurate sonar data needs to be vetted further.
 
 ## Requirements
 
@@ -113,4 +122,16 @@ Analyzing the data, this seems to be true since a solid portion of the predictiv
 
 ## Acknowledgements
 
+I'd like to thank my collaborator, Matt Daily, for his machine learning efforts and subject matter expertise on Active Sonar Systems. Lastly, I’d like to give thanks Raytheon BBN Technologies for giving me the opportunity to expand the machine learning marketing efforts. 
+
+Thank you.
+
 ## References
+
+- https://arxiv.org/pdf/1505.04597.pdf
+  
+- https://divamgupta.com/image-segmentation/2019/06/06/deep-learning-semantic-segmentation-keras.html
+  
+- https://arxiv.org/pdf/1505.04597.pdf
+  
+- https://en.wikipedia.org/wiki/Color_model
